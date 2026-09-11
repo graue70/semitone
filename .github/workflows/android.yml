@@ -1,0 +1,111 @@
+name: android
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: resolve ffmpeg submodule commit
+        id: ffmpeg
+        run: echo "sha=$(git rev-parse HEAD:lib/ffmpeg)" >> "$GITHUB_OUTPUT"
+
+      - name: cache ffmpeg build output
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: lib/ffmpeg/build
+          key: ffmpeg-build-${{ steps.ffmpeg.outputs.sha }}-${{ hashFiles('tools/build_ffmpeg.sh') }}
+
+      - name: init submodules
+        run: git submodule update --init --recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: install gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.6'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: install ndk and cmake
+        run: sdkmanager "ndk;22.0.7026061" "cmake;3.22.1"
+
+      - name: build ffmpeg
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          export ANDROID_NDK="$ANDROID_HOME/ndk/22.0.7026061"
+          ./tools/build_ffmpeg.sh
+          ./tools/copy_ffmpeg.sh
+
+      - name: prepare signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo >&2 "secrets KEYSTORE_BASE64, KEYSTORE_PASSWORD and KEY_ALIAS must be set"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+          cat > keystore.properties <<EOF
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEYSTORE_PASSWORD
+          storeFile=keystore.jks
+          storePassword=$KEYSTORE_PASSWORD
+          EOF
+
+      - name: build apk
+        id: apk
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            vname="1.3.2-test.${GITHUB_RUN_NUMBER}"
+            vcode=$((6 + GITHUB_RUN_NUMBER))
+            gradle assembleRelease "-PciVersionName=$vname" "-PciVersionCode=$vcode"
+          else
+            vname="${GITHUB_REF_NAME#v}"
+            gradle assembleRelease
+          fi
+          echo "version=$vname" >> "$GITHUB_OUTPUT"
+
+      - name: rename apk
+        run: mv app/build/outputs/apk/release/app-release.apk "semitone-${{ steps.apk.outputs.version }}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semitone-apk
+          path: semitone-*.apk
+
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.apk.outputs.version }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            gh release create "test-${GITHUB_RUN_NUMBER}" "semitone-$VERSION.apk" \
+              --prerelease \
+              --title "test build $VERSION (${{ github.ref_name }})" \
+              --notes "branch: ${{ github.ref_name }}, commit: ${{ github.sha }}"
+          else
+            gh release create "$GITHUB_REF_NAME" "semitone-$VERSION.apk" \
+              --title "$GITHUB_REF_NAME" \
+              --notes "commit: ${{ github.sha }}"
+          fi

@@ -3,4 +3,5 @@ shared
 .externalNativeBuild
 .gradle
 keystore.properties
+*.jks
 .cxx
