@@ -88,7 +88,7 @@ jobs:
           echo "version=$vname" >> "$GITHUB_OUTPUT"
 
       - name: rename apk
-        run: mv app/build/outputs/apk/release/app-release.apk "semitone-${{ steps.apk.outputs.version }}.apk"
+        run: mv build/outputs/apk/release/app-release.apk "semitone-${{ steps.apk.outputs.version }}.apk"
 
       - uses: actions/upload-artifact@v4
         with:
