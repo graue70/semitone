@@ -103,7 +103,7 @@ jobs:
           VERSION: ${{ steps.apk.outputs.version }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            gh release create "test-${GITHUB_RUN_NUMBER}" "semitone-$VERSION.apk" \
+            gh release create "$VERSION" "semitone-$VERSION.apk" \
               --prerelease \
               --title "test build $VERSION (${{ github.ref_name }})" \
               --notes "branch: ${{ github.ref_name }}, commit: ${{ github.sha }}"
