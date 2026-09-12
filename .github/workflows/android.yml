@@ -31,7 +31,13 @@ jobs:
           key: ffmpeg-build-${{ steps.ffmpeg.outputs.sha }}-${{ hashFiles('tools/build_ffmpeg.sh') }}
 
       - name: init submodules
-        run: git submodule update --init --recursive
+        run: |
+          git submodule update --init lib/oboe
+          if [ "${{ steps.cache.outputs.cache-hit }}" != 'true' ]; then
+            git submodule update --init lib/ffmpeg \
+              || (git config submodule.lib/ffmpeg.url https://github.com/FFmpeg/FFmpeg.git \
+                  && git submodule update --init lib/ffmpeg)
+          fi
 
       - uses: actions/setup-java@v5
         with:
