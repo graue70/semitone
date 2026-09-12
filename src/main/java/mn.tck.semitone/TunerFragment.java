@@ -20,7 +20,6 @@ package mn.tck.semitone;
 
 import android.Manifest;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,13 +28,13 @@ import android.view.ViewTreeObserver;
 import android.widget.TextView;
 import android.util.TypedValue;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.preference.PreferenceManager;
 
 import java.util.Arrays;
 
 public class TunerFragment extends SemitoneFragment implements RecordEngine.Callback {
-
-    final static int REQUEST_MIC = 123;
 
     final static int HIST_SIZE = 16;
 
@@ -47,6 +46,16 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
     int concert_a;
 
     double[] dbuf, hist, sorted;
+
+    private final ActivityResultLauncher<String> micPermissionLauncher =
+        registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+            if (granted) {
+                notename.setText("");
+                notename.setTextSize(TypedValue.COMPLEX_UNIT_PX, notenamesize);
+                RecordEngine.create(getActivity());
+                dbuf = new double[DSP.fftlen];
+            }
+        });
 
     public TunerFragment() {
         super();
@@ -81,7 +90,7 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
                     notename.setOnClickListener(new View.OnClickListener() {
                         @Override public void onClick(View v) {
                             if (RecordEngine.created) return;
-                            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_MIC);
+                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
                         }
                     });
                 }
@@ -97,19 +106,6 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
             concert_a = Integer.parseInt(sp.getString("concert_a", "440"));
         } catch (NumberFormatException e) {
             concert_a = 440;
-        }
-    }
-
-    @Override public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
-        switch (code) {
-        case REQUEST_MIC:
-            if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) {
-                notename.setText("");
-                notename.setTextSize(TypedValue.COMPLEX_UNIT_PX, notenamesize);
-                RecordEngine.create(getActivity());
-                dbuf = new double[DSP.fftlen];
-            }
-            break;
         }
     }
 
