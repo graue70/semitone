@@ -111,6 +111,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             gh release create "$VERSION" "semitone-$VERSION.apk" \
               --prerelease \
+              --target "$GITHUB_SHA" \
               --title "test build $VERSION (${{ github.ref_name }})" \
               --notes "branch: ${{ github.ref_name }}, commit: ${{ github.sha }}"
           else
