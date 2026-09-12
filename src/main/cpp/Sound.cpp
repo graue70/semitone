@@ -22,6 +22,7 @@
 
 extern "C" {
 #include <libswresample/swresample.h>
+#include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/opt.h>
