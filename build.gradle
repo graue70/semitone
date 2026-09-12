@@ -1,11 +1,11 @@
+plugins {
+    id 'com.android.application' version '9.4.0'
+}
+
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
-plugins {
-    id 'com.android.application' version '9.4.0'
 }
 
 dependencies {
