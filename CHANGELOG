@@ -1,6 +1,6 @@
 unreleased:
- * Raise minimum android version to 5.0 (api 21), as required by modern
-   native toolchains.
+ * Raise minimum android version to 6.0 (api 23), as required by modern
+   toolchains and the current material components library.
  * Target android 16 (sdk 36); the ui now avoids drawing underneath the
    system bars.
  * Modernized build stack: gradle 9 wrapper, android gradle plugin 9.4,
