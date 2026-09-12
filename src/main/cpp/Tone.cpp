@@ -21,9 +21,8 @@
 #include <oboe/Oboe.h>
 #include <math.h>
 
-Tone::Tone(int pitch, int concert_a) : pitch(pitch), phase(0), stopped(false) {
-    phaseIncrement = 2*M_PI * (concert_a*powf(2, (pitch-69)/12.0f)) /
-        oboe::DefaultStreamValues::SampleRate;
+Tone::Tone(int pitch, int concert_a, int sampleRate) : pitch(pitch), phase(0), stopped(false) {
+    phaseIncrement = 2*M_PI * (concert_a*powf(2, (pitch-69)/12.0f)) / sampleRate;
 }
 
 float Tone::tick() {
