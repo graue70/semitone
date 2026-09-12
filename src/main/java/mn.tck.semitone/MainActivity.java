@@ -28,6 +28,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.preference.PreferenceManager;
@@ -49,7 +51,14 @@ public class MainActivity extends FragmentActivity {
 
     boolean keeptick;
 
-    static final int SETTINGS_INTENT_CODE = 123;
+    private final ActivityResultLauncher<Intent> settingsLauncher =
+        registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (tf != null) tf.onSettingsChanged();
+            if (mf != null) mf.onSettingsChanged();
+            if (pf != null) pf.onSettingsChanged();
+            keeptick = PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean("keeptick", false);
+        });
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -66,7 +75,7 @@ public class MainActivity extends FragmentActivity {
         if (!sp.contains("sustain")) e.putBoolean("sustain", false);
         if (!sp.contains("labelnotes")) e.putBoolean("labelnotes", true);
         if (!sp.contains("labelc")) e.putBoolean("labelc", true);
-        e.commit();
+        e.apply();
 
         keeptick = sp.getBoolean("keeptick", false);
 
@@ -88,7 +97,7 @@ public class MainActivity extends FragmentActivity {
                 if (pos == 0) RecordEngine.resume();
                 else RecordEngine.pause();
                 e.putInt("lastpage", pos);
-                e.commit();
+                e.apply();
             }
         });
 
@@ -97,9 +106,7 @@ public class MainActivity extends FragmentActivity {
 
         settings.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                startActivityForResult(
-                        new Intent(MainActivity.this, SettingsActivity.class),
-                        SETTINGS_INTENT_CODE);
+                settingsLauncher.launch(new Intent(MainActivity.this, SettingsActivity.class));
             }
         });
     }
@@ -120,19 +127,6 @@ public class MainActivity extends FragmentActivity {
         super.onResume();
         if (PianoEngine.paused) PianoEngine.resume();
         RecordEngine.resume();
-    }
-
-    @Override public void onActivityResult(int code, int res, Intent data) {
-        super.onActivityResult(code, res, data);
-        switch (code) {
-        case SETTINGS_INTENT_CODE:
-            if (tf != null) tf.onSettingsChanged();
-            if (mf != null) mf.onSettingsChanged();
-            if (pf != null) pf.onSettingsChanged();
-            keeptick = PreferenceManager.getDefaultSharedPreferences(this)
-                .getBoolean("keeptick", false);
-            break;
-        }
     }
 
     private static class SemitoneAdapter extends FragmentStateAdapter {

@@ -37,12 +37,8 @@ public class AboutActivity extends AppCompatActivity {
         wv.setBackgroundColor(Color.TRANSPARENT);
     }
 
-    @Override public void onBackPressed() {
-        finish();
-    }
-
     @Override public boolean onSupportNavigateUp() {
-        onBackPressed();
+        finish();
         return true;
     }
 

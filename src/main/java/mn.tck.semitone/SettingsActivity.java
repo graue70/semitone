@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Window;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity extends AppCompatActivity {
@@ -36,16 +37,18 @@ public class SettingsActivity extends AppCompatActivity {
             .beginTransaction()
             .replace(R.id.settingsframe, new SettingsFragment())
             .commit();
-    }
 
-    @Override public void onBackPressed() {
-        Intent data = new Intent();
-        setResult(Activity.RESULT_OK, data);
-        finish();
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() {
+                Intent data = new Intent();
+                setResult(Activity.RESULT_OK, data);
+                finish();
+            }
+        });
     }
 
     @Override public boolean onSupportNavigateUp() {
-        onBackPressed();
+        getOnBackPressedDispatcher().onBackPressed();
         return true;
     }
 
