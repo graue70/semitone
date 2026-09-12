@@ -51,7 +51,8 @@ int64_t seek(void *ptr, int64_t offset, int whence) {
 }
 
 // TODO check for errors here
-Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels) : stopped(false) {
+Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate)
+        : stopped(false) {
     AAsset *a = AAssetManager_open(&am, path, AASSET_MODE_UNKNOWN);
     if (a == nullptr) {
         nSamples = 0;
@@ -107,7 +108,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels) :
     av_opt_set_int(swr, "in_sample_fmt",     stream->codecpar->format,                        0);
     av_opt_set_int(swr,        "out_channel_count",  channels,                              0);
     av_opt_set_int(swr,        "out_channel_layout", (1 << channels) - 1,                   0);
-    av_opt_set_int(swr,        "out_sample_rate",    oboe::DefaultStreamValues::SampleRate, 0);
+    av_opt_set_int(swr,        "out_sample_rate",    sampleRate,                            0);
     av_opt_set_sample_fmt(swr, "out_sample_fmt",     AV_SAMPLE_FMT_FLT,                     0);
     av_opt_set_int(swr, "force_resampling", 1, 0);
     swr_init(swr);
@@ -126,7 +127,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels) :
             // resample
             int32_t samples = (int32_t) av_rescale_rnd(
                     swr_get_delay(swr, frame->sample_rate) + frame->nb_samples,
-                    oboe::DefaultStreamValues::SampleRate,
+                    sampleRate,
                     frame->sample_rate,
                     AV_ROUND_UP);
             uint8_t *swrbuf;

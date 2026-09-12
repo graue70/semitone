@@ -24,7 +24,7 @@
 
 class Sound {
 public:
-    Sound(AAssetManager &am, const char *path, int concert_a, int channels);
+    Sound(AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate);
     std::unique_ptr<float[]> data;
     size_t nSamples, offset;
     bool stopped;
