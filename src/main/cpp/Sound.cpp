@@ -23,6 +23,7 @@
 extern "C" {
 #include <libswresample/swresample.h>
 #include <libavformat/avformat.h>
+#include <libavutil/channel_layout.h>
 #include <libavutil/opt.h>
 }
 
@@ -87,7 +88,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels) :
 
     // find stream and codec
     AVStream *stream = fc->streams[av_find_best_stream(fc.get(), AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0)];
-    AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
+    const AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
 
     // obtain AVCodecContext (with deleter)
     std::unique_ptr<AVCodecContext, void(*)(AVCodecContext*)> cc {
@@ -101,26 +102,24 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels) :
 
     // initialize software resampler
     SwrContext *swr = swr_alloc();
-    av_opt_set_int(swr, "in_channel_count",  stream->codecpar->channels,                      0);
-    av_opt_set_int(swr, "in_channel_layout", stream->codecpar->channel_layout,                0);
+    AVChannelLayout out_chlayout;
+    av_channel_layout_default(&out_chlayout, channels);
+    av_opt_set_chlayout(swr, "in_chlayout",  &stream->codecpar->ch_layout,                     0);
     av_opt_set_int(swr, "in_sample_rate",    (concert_a/440.0)*stream->codecpar->sample_rate, 0);
     av_opt_set_int(swr, "in_sample_fmt",     stream->codecpar->format,                        0);
-    av_opt_set_int(swr,        "out_channel_count",  channels,                              0);
-    av_opt_set_int(swr,        "out_channel_layout", (1 << channels) - 1,                   0);
-    av_opt_set_int(swr,        "out_sample_rate",    oboe::DefaultStreamValues::SampleRate, 0);
+    av_opt_set_chlayout(swr, "out_chlayout", &out_chlayout,                                   0);
+    av_opt_set_int(swr, "out_sample_rate",   oboe::DefaultStreamValues::SampleRate, 0);
     av_opt_set_sample_fmt(swr, "out_sample_fmt",     AV_SAMPLE_FMT_FLT,                     0);
-    av_opt_set_int(swr, "force_resampling", 1, 0);
     swr_init(swr);
 
     // do the actual decoding
     size_t nBytes = 0;
-    AVPacket packet;
-    av_init_packet(&packet);
+    AVPacket *packet = av_packet_alloc();
     AVFrame *frame = av_frame_alloc();
-    while (av_read_frame(fc.get(), &packet) == 0) {
-        if (packet.stream_index != stream->index) continue;
-        while (packet.size > 0) {
-            avcodec_send_packet(cc.get(), &packet);
+    while (av_read_frame(fc.get(), packet) == 0) {
+        if (packet->stream_index != stream->index) continue;
+        while (packet->size > 0) {
+            avcodec_send_packet(cc.get(), packet);
             avcodec_receive_frame(cc.get(), frame);
 
             // resample
@@ -137,10 +136,11 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels) :
             nBytes += bytesize;
             av_freep(&swrbuf);
 
-            packet.size = 0;
-            packet.data = nullptr;
+            packet->size = 0;
+            packet->data = nullptr;
         }
     }
+    av_packet_free(&packet);
     av_frame_free(&frame);
 
     nSamples = nBytes / sizeof(float);

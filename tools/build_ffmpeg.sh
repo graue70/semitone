@@ -23,6 +23,9 @@ do
         --prefix="build/$ABI" \
         --arch="$ARCH" \
         --cc="$TOOLCHAIN/$CC_CMD" \
+        --ar="$TOOLCHAIN/llvm-ar" \
+        --nm="$TOOLCHAIN/llvm-nm" \
+        --ranlib="$TOOLCHAIN/llvm-ranlib" \
         --strip="$TOOLCHAIN/$STRIP_CMD" \
         $FLAGS \
         --target-os=android \
@@ -35,8 +38,8 @@ do
     make install
 
 done <<x
-armeabi-v7a armv7-a armv7a-linux-androideabi16-clang arm-linux-androideabi-strip
-arm64-v8a   aarch64 aarch64-linux-android21-clang    aarch64-linux-android-strip
-x86         x86     i686-linux-android16-clang       i686-linux-android-strip    --disable-asm
-x86_64      x86_64  x86_64-linux-android21-clang     x86_64-linux-android-strip  --disable-asm
+armeabi-v7a armv7-a armv7a-linux-androideabi21-clang llvm-strip
+arm64-v8a   aarch64 aarch64-linux-android21-clang    llvm-strip
+x86         x86     i686-linux-android21-clang       llvm-strip    --disable-asm
+x86_64      x86_64  x86_64-linux-android21-clang     llvm-strip    --disable-asm
 x
