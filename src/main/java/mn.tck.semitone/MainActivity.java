@@ -30,12 +30,12 @@ import android.widget.ImageView;
 
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.preference.PreferenceManager;
-import androidx.viewpager.widget.ViewPager;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 
 public class MainActivity extends FragmentActivity {
 
@@ -74,17 +74,16 @@ public class MainActivity extends FragmentActivity {
         mt = getResources().getString(R.string.metronome_title);
         pt = getResources().getString(R.string.piano_title);
 
-        ViewPager pager = (ViewPager) findViewById(R.id.pager);
+        ViewPager2 pager = (ViewPager2) findViewById(R.id.pager);
         TabLayout tabs = (TabLayout) findViewById(R.id.tabs);
-        SemitoneAdapter adapter = new SemitoneAdapter(getSupportFragmentManager());
+        SemitoneAdapter adapter = new SemitoneAdapter(this);
 
         pager.setAdapter(adapter);
-        tabs.setupWithViewPager(pager);
-        pager.setCurrentItem(sp.getInt("lastpage", 0));
+        new TabLayoutMediator(tabs, pager, (tab, pos) ->
+                tab.setText(pos == 0 ? tt : pos == 1 ? mt : pt)).attach();
+        pager.setCurrentItem(sp.getInt("lastpage", 0), false);
 
-        pager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-            @Override public void onPageScrollStateChanged(int state) {}
-            @Override public void onPageScrolled(int pos, float off1, int off2) {}
+        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageSelected(int pos) {
                 if (pos == 0) RecordEngine.resume();
                 else RecordEngine.pause();
@@ -136,22 +135,14 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
-    private static class SemitoneAdapter extends FragmentPagerAdapter {
-        public SemitoneAdapter(FragmentManager fm) { super(fm); }
-        @Override public int getCount() { return 3; }
-        @Override public Fragment getItem(int pos) {
+    private static class SemitoneAdapter extends FragmentStateAdapter {
+        public SemitoneAdapter(FragmentActivity fa) { super(fa); }
+        @Override public int getItemCount() { return 3; }
+        @Override public Fragment createFragment(int pos) {
             switch (pos) {
             case 0: return new TunerFragment();
             case 1: return new MetronomeFragment();
             case 2: return new PianoFragment();
-            default: return null;
-            }
-        }
-        @Override public CharSequence getPageTitle(int pos) {
-            switch (pos) {
-            case 0: return tt;
-            case 1: return mt;
-            case 2: return pt;
             default: return null;
             }
         }
