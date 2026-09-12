@@ -39,7 +39,13 @@ void PianoEngine::init() {
     asb.setCallback(this);
 
     oboe::Result res = asb.openStream(&stream);
-    if (res != oboe::Result::OK || stream == nullptr) return;
+    if (res != oboe::Result::OK || stream == nullptr) {
+        sampleRate = oboe::DefaultStreamValues::SampleRate;
+        return;
+    }
+    sampleRate = stream->getSampleRate();
+    LOGI("output stream: sample rate %d, frames per burst %d",
+            sampleRate, stream->getFramesPerBurst());
 
     stream->setBufferSizeInFrames(stream->getFramesPerBurst());
     is16bit = stream->getFormat() == oboe::AudioFormat::I16;
@@ -49,13 +55,31 @@ void PianoEngine::init() {
 }
 
 void PianoEngine::deinit() {
-    if (stream == nullptr) return;
-    stream->requestStop();
-    stream->close();
+    if (stream != nullptr) {
+        stream->requestStop();
+        stream->close();
+        stream = nullptr;
+    }
+    tonesLock.lock();
+    for (int i = 0; i < MAX_TONES; ++i) {
+        if (tones[i] != nullptr) {
+            delete tones[i];
+            tones[i] = nullptr;
+        }
+    }
+    tonesLock.unlock();
+    soundsLock.lock();
+    for (int i = 0; i < MAX_SOUNDS; ++i) {
+        if (sounds[i] != nullptr) {
+            delete sounds[i];
+            sounds[i] = nullptr;
+        }
+    }
+    soundsLock.unlock();
 }
 
 void PianoEngine::pause() {
-    stream->requestPause();
+    if (stream != nullptr) stream->requestPause();
     /* stream->waitForStateChange(oboe::StreamState::Pausing, nullptr, 1000000000); */
     tonesLock.lock();
     for (int i = 0; i < MAX_TONES; ++i) {
@@ -72,7 +96,7 @@ void PianoEngine::pause() {
 }
 
 void PianoEngine::resume() {
-    stream->requestStart();
+    if (stream != nullptr) stream->requestStart();
 }
 
 void PianoEngine::play(int pitch, int concert_a) {
@@ -80,7 +104,7 @@ void PianoEngine::play(int pitch, int concert_a) {
     tonesLock.lock();
     for (int i = 0; i < MAX_TONES; ++i) {
         if (tones[i] == nullptr) {
-            tones[i] = new Tone(pitch, concert_a);
+            tones[i] = new Tone(pitch, concert_a, sampleRate);
             break;
         }
     }
@@ -101,7 +125,7 @@ void PianoEngine::playFile(const char *path, int concert_a) {
     soundsLock.lock();
     for (int i = 0; i < MAX_SOUNDS; ++i) {
         if (sounds[i] == nullptr) {
-            Sound *s = new Sound(am, path, concert_a, 1);
+            Sound *s = new Sound(am, path, concert_a, 1, sampleRate);
             if (s->nSamples == 0) delete s;
             else sounds[i] = s;
             break;

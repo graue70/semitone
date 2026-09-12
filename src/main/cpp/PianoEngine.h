@@ -55,6 +55,7 @@ private:
     oboe::AudioStream *stream;
     bool is16bit;
     std::unique_ptr<float[]> buf16;
+    int sampleRate = oboe::DefaultStreamValues::SampleRate;
 
     Tone *tones[MAX_TONES] = {nullptr};
     Sound *sounds[MAX_SOUNDS] = {nullptr};
