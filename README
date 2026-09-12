@@ -29,11 +29,14 @@ To compile, first run
 
 The first command is a custom build script to build ffmpeg with only the
 necessary features, and the second command moves the shared object files to the
-place where CMake is configured to find them. Then, to build Semitone, run
-either of the following commands:
+place where CMake is configured to find them. The script needs the Android NDK
+(r28c, 28.2.13676358) via the ANDROID_NDK environment variable. Building the
+app itself requires a JDK (17 or later) and the Android SDK; see shell.nix for
+one way to set these up. Then, to build Semitone, run either of the following
+commands:
 
- $ gradle buildDebug
- $ gradle buildRelease
+ $ ./gradlew assembleDebug
+ $ ./gradlew assembleRelease
 
 -------
 
