@@ -73,5 +73,9 @@ JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doStop
 JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doPlayFile
   (JNIEnv *env, jclass, jlong handle, jstring path, jint concert_a) {
     PianoEngine *engine = reinterpret_cast<PianoEngine*>(handle);
-    if (engine != nullptr) engine->playFile(env->GetStringUTFChars(path, 0), concert_a);
+    if (engine == nullptr) return;
+    const char *utf = env->GetStringUTFChars(path, nullptr);
+    if (utf == nullptr) return;
+    engine->playFile(utf, concert_a);
+    env->ReleaseStringUTFChars(path, utf);
 }
