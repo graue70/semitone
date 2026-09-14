@@ -44,6 +44,9 @@ JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setSampleRate
 JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setFramesPerBurst
   (JNIEnv *, jclass, jint);
 
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setBluetoothOutput
+  (JNIEnv *, jclass, jboolean);
+
 /*
  * Class:     mn_tck_semitone_PianoEngine
  * Method:    doPlay

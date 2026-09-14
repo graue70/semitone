@@ -20,6 +20,7 @@ package mn.tck.semitone;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Build;
 
@@ -38,6 +39,24 @@ public class PianoEngine {
 
     static public boolean create(Context context) {
         if (handle != 0) return true;
+
+        // use a robust low-performance stream configuration for bluetooth output,
+        // where exclusive low-latency streams tend to produce constant underruns
+        boolean bluetooth = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                int t = d.getType();
+                if (t == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                        || t == AudioDeviceInfo.TYPE_BLE_HEADSET
+                        || t == AudioDeviceInfo.TYPE_BLE_SPEAKER) {
+                    bluetooth = true;
+                    break;
+                }
+            }
+        }
+        setBluetoothOutput(bluetooth);
+
         handle = createPianoEngine(context.getAssets());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -69,6 +88,7 @@ public class PianoEngine {
     private static native void doResume(long handle);
     private static native void setSampleRate(int val);
     private static native void setFramesPerBurst(int val);
+    private static native void setBluetoothOutput(boolean val);
     private static native void doPlay(long handle, int pitch, int concert_a);
     private static native void doStop(long handle, int pitch);
     private static native void doPlayFile(long handle, String path, int concert_a);
