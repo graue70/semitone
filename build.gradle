@@ -54,6 +54,10 @@ android {
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.config
             }
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles(getDefaultProguardFile('proguard-android-optimize.txt'),
+                    'proguard-rules.pro')
         }
     }
 }
