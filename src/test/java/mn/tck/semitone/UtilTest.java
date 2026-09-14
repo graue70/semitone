@@ -43,8 +43,8 @@ public class UtilTest {
     @Test
     public void widestWhiteNameIgnoresBlackKeys() {
         // "Ais" sits on a black key in the german naming, so among the white
-        // keys "H" is the widest
-        assertEquals("H", Util.widestWhiteName(Util.notenamesAll[2]));
+        // keys nothing is wider than "A"
+        assertEquals("A", Util.widestWhiteName(Util.notenamesAll[2]));
         assertEquals("Sol", Util.widestWhiteName(Util.notenamesAll[1]));
     }
 }
