@@ -49,6 +49,9 @@ public class PianoView extends View {
     protected boolean sustain, labelnotes, labelc;
     protected String[] notenames = Util.notenames;
 
+    private int labelWidth = -1, labelTextSize;
+    private String[] labelNames = null;
+
     public PianoView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
@@ -108,8 +111,15 @@ public class PianoView extends View {
         whiteHeight = height / rows;
         blackWidth = whiteWidth * 2 / 3;
         blackHeight = whiteHeight / 2;
-        blackPaint.setTextSize(
-                Util.maxTextSize(Util.widestWhiteName(notenames) + "0", whiteWidth * 2/3));
+
+        // only recompute the label size when the inputs to it change -
+        // measuring text every frame is wasteful
+        if (labelWidth != whiteWidth || labelNames != notenames) {
+            labelWidth = whiteWidth;
+            labelNames = notenames;
+            labelTextSize = Util.maxTextSize(Util.widestWhiteName(notenames) + "0", whiteWidth * 2/3);
+            blackPaint.setTextSize(labelTextSize);
+        }
 
         for (int row = 0; row < rows; ++row) {
             for (int key = 0; key < keys; ++key) {

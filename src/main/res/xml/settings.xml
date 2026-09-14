@@ -17,11 +17,12 @@
         android:title="@string/settings_global">
 
         <EditTextPreference
-            android:numeric="integer"
             android:key="concert_a"
             android:title="@string/concert_a_title"
             android:summary="@string/concert_a_summary"
-            android:dialogTitle="@string/concert_a_dialog" />
+            android:dialogTitle="@string/concert_a_dialog"
+            android:inputType="number"
+            android:defaultValue="440" />
 
         <ListPreference
             android:key="notenames"
@@ -36,31 +37,35 @@
     <PreferenceCategory
         android:title="@string/settings_metronome">
 
-        <CheckBoxPreference
+        <SwitchPreferenceCompat
             android:key="keeptick"
             android:title="@string/keeptick_title"
-            android:summary="@string/keeptick_summary" />
+            android:summary="@string/keeptick_summary"
+            android:defaultValue="false" />
 
     </PreferenceCategory>
 
     <PreferenceCategory
         android:title="@string/settings_piano">
 
-        <CheckBoxPreference
+        <SwitchPreferenceCompat
             android:key="sustain"
             android:title="@string/sustain_title"
-            android:summary="@string/sustain_summary" />
+            android:summary="@string/sustain_summary"
+            android:defaultValue="false" />
 
-        <CheckBoxPreference
+        <SwitchPreferenceCompat
             android:key="labelnotes"
             android:title="@string/labelnotes_title"
-            android:summary="@string/labelnotes_summary" />
+            android:summary="@string/labelnotes_summary"
+            android:defaultValue="true" />
 
-        <CheckBoxPreference
+        <SwitchPreferenceCompat
             android:dependency="labelnotes"
             android:key="labelc"
             android:title="@string/labelc_title"
-            android:summary="@string/labelc_summary" />
+            android:summary="@string/labelc_summary"
+            android:defaultValue="true" />
 
     </PreferenceCategory>
 
