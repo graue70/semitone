@@ -29,11 +29,11 @@ public class DSP {
         fftpow = 31 - Integer.numberOfLeadingZeros(bufsize);
         fftlen = 1 << fftpow;
 
-        cos = new double[fftlen/2];
-        sin = new double[fftlen/2];
-        for (int i = 0; i < fftlen/2; ++i) {
-            cos[i] = Math.cos(-2*Math.PI*i/fftlen);
-            sin[i] = Math.sin(-2*Math.PI*i/fftlen);
+        cos = new double[fftlen / 2];
+        sin = new double[fftlen / 2];
+        for (int i = 0; i < fftlen / 2; ++i) {
+            cos[i] = Math.cos(-2 * Math.PI * i / fftlen);
+            sin[i] = Math.sin(-2 * Math.PI * i / fftlen);
         }
     }
 
@@ -42,8 +42,8 @@ public class DSP {
         // bit reversal
         {
             int j = 0;
-            int n2 = fftlen/2;
-            for (int i = 1; i < fftlen-1; ++i) {
+            int n2 = fftlen / 2;
+            for (int i = 1; i < fftlen - 1; ++i) {
                 int n1 = n2;
                 while (j >= n1) {
                     j -= n1;
@@ -53,8 +53,12 @@ public class DSP {
 
                 double tmp;
                 if (i < j) {
-                    tmp = re[i]; re[i] = re[j]; re[j] = tmp;
-                    tmp = im[i]; im[i] = im[j]; im[j] = tmp;
+                    tmp = re[i];
+                    re[i] = re[j];
+                    re[j] = tmp;
+                    tmp = im[i];
+                    im[i] = im[j];
+                    im[j] = tmp;
                 }
             }
         }
@@ -66,10 +70,10 @@ public class DSP {
             int a = 0;
             for (int j = 0; j < n1; ++j) {
                 for (int k = j; k < fftlen; k += n2) {
-                    double tre = cos[a] * re[k+n1] - sin[a] * im[k+n1],
-                           tim = sin[a] * re[k+n1] + cos[a] * im[k+n1];
-                    re[k+n1] = re[k] - tre;
-                    im[k+n1] = im[k] - tim;
+                    double tre = cos[a] * re[k + n1] - sin[a] * im[k + n1],
+                            tim = sin[a] * re[k + n1] + cos[a] * im[k + n1];
+                    re[k + n1] = re[k] - tre;
+                    im[k + n1] = im[k] - tim;
                     re[k] += tre;
                     im[k] += tim;
                 }
@@ -99,7 +103,7 @@ public class DSP {
         boolean looking = false;
         double maxval = 0;
         int j = -1; // maxidx
-        for (int i = 0; i < fftlen/2; ++i) {
+        for (int i = 0; i < fftlen / 2; ++i) {
             if (looking) {
                 if (buf[i] > maxval) {
                     maxval = buf[i];
@@ -110,12 +114,11 @@ public class DSP {
             }
         }
         // no peak found, or too close to the edges for interpolation
-        if (j <= 0 || j >= fftlen/2 - 1) return -1;
+        if (j <= 0 || j >= fftlen / 2 - 1) return -1;
         // quadratic interpolation
-        double denom = buf[j-1] - 2*buf[j] + buf[j+1];
+        double denom = buf[j - 1] - 2 * buf[j] + buf[j + 1];
         if (denom == 0) return -1;
-        double interp = 0.5 * (buf[j-1] - buf[j+1]) / denom;
-        return (double)sr / (j + interp);
+        double interp = 0.5 * (buf[j - 1] - buf[j + 1]) / denom;
+        return (double) sr / (j + interp);
     }
-
 }

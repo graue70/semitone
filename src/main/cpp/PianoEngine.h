@@ -31,15 +31,14 @@
 #include "Tone.h"
 #include "Sound.h"
 
-#define MAX_TONES  100
+#define MAX_TONES 100
 #define MAX_SOUNDS 200
 
-#define TONE_MODE  1
+#define TONE_MODE 1
 #define SOUND_MODE 2
 
 class PianoEngine : oboe::AudioStreamCallback {
-
-public:
+   public:
     explicit PianoEngine(AAssetManager &am);
     ~PianoEngine();
 
@@ -53,7 +52,7 @@ public:
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream *stream, void *data, int32_t frames);
     void onErrorAfterClose(oboe::AudioStream *stream, oboe::Result err);
 
-private:
+   private:
     void init();
     void deinit();
     std::shared_ptr<const std::vector<float>> loadSound(const char *path, int concert_a);
@@ -62,19 +61,19 @@ private:
 
     // the stream is opened on the ui thread but also (re)opened from the
     // oboe error callback, so it can be touched from both
-    std::atomic<oboe::AudioStream*> stream {nullptr};
+    std::atomic<oboe::AudioStream *> stream{nullptr};
     bool is16bit = false;
     std::unique_ptr<float[]> buf16;
-    std::atomic<int> sampleRate {0};
+    std::atomic<int> sampleRate{0};
     int logCounter = 0;
 
     // tone/sound slots are shared between the ui thread (which allocates)
     // and the audio callback (which consumes and frees); all shared state
     // is atomic, and pointer changes additionally happen under the
     // respective lock
-    std::atomic<Tone*> tones[MAX_TONES] = {};
-    std::atomic<Sound*> sounds[MAX_SOUNDS] = {};
-    std::atomic<int> mode {TONE_MODE};
+    std::atomic<Tone *> tones[MAX_TONES] = {};
+    std::atomic<Sound *> sounds[MAX_SOUNDS] = {};
+    std::atomic<int> mode{TONE_MODE};
 
     // decoded samples by path/concert pitch/sample rate; sounds reference
     // the buffers by shared_ptr, so playback survives cache eviction
@@ -82,7 +81,6 @@ private:
     std::mutex cacheLock;
 
     std::mutex restartLock, tonesLock, soundsLock;
-
 };
 
 #endif

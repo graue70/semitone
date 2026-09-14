@@ -30,78 +30,108 @@ public class PianoFragment extends SemitoneFragment {
     PianoView piano;
     View view;
 
-    @Override public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
         return inflater.inflate(R.layout.piano, container, false);
     }
 
-    @Override public void onViewCreated(View view, Bundle state) {
+    @Override
+    public void onViewCreated(View view, Bundle state) {
         this.view = view;
 
         piano = (PianoView) view.findViewById(R.id.piano);
 
-        view.findViewById(R.id.add_row).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (piano.rows < 5) ++piano.rows;
-                piano.updateParams(true);
-            }
-        });
-        view.findViewById(R.id.remove_row).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (piano.rows > 1) --piano.rows;
-                piano.updateParams(true);
-            }
-        });
-        view.findViewById(R.id.add_col).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (piano.keys < 21) ++piano.keys;
-                piano.updateParams(true);
-            }
-        });
-        view.findViewById(R.id.remove_col).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (piano.keys > 7) --piano.keys;
-                piano.updateParams(true);
-            }
-        });
-        view.findViewById(R.id.left_octave).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                piano.pitch -= 7;
-                if (piano.pitch < 7) piano.pitch = 7;
-                piano.updateParams(true);
-            }
-        });
-        view.findViewById(R.id.left_key).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (piano.pitch > 7) --piano.pitch;
-                piano.updateParams(true);
-            }
-        });
-        view.findViewById(R.id.right_key).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (piano.pitch < 49) ++piano.pitch;
-                piano.updateParams(true);
-            }
-        });
-        view.findViewById(R.id.right_octave).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                piano.pitch += 7;
-                if (piano.pitch > 49) piano.pitch = 49;
-                piano.updateParams(true);
-            }
-        });
-        view.findViewById(R.id.reset_view).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                piano.rows = 2;
-                piano.keys = 7;
-                piano.pitch = 28;
-                piano.updateParams(true);
-            }
-        });
+        view.findViewById(R.id.add_row)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                if (piano.rows < 5) ++piano.rows;
+                                piano.updateParams(true);
+                            }
+                        });
+        view.findViewById(R.id.remove_row)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                if (piano.rows > 1) --piano.rows;
+                                piano.updateParams(true);
+                            }
+                        });
+        view.findViewById(R.id.add_col)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                if (piano.keys < 21) ++piano.keys;
+                                piano.updateParams(true);
+                            }
+                        });
+        view.findViewById(R.id.remove_col)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                if (piano.keys > 7) --piano.keys;
+                                piano.updateParams(true);
+                            }
+                        });
+        view.findViewById(R.id.left_octave)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                piano.pitch -= 7;
+                                if (piano.pitch < 7) piano.pitch = 7;
+                                piano.updateParams(true);
+                            }
+                        });
+        view.findViewById(R.id.left_key)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                if (piano.pitch > 7) --piano.pitch;
+                                piano.updateParams(true);
+                            }
+                        });
+        view.findViewById(R.id.right_key)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                if (piano.pitch < 49) ++piano.pitch;
+                                piano.updateParams(true);
+                            }
+                        });
+        view.findViewById(R.id.right_octave)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                piano.pitch += 7;
+                                if (piano.pitch > 49) piano.pitch = 49;
+                                piano.updateParams(true);
+                            }
+                        });
+        view.findViewById(R.id.reset_view)
+                .setOnClickListener(
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                piano.rows = 2;
+                                piano.keys = 7;
+                                piano.pitch = 28;
+                                piano.updateParams(true);
+                            }
+                        });
 
         onSettingsChanged();
     }
 
-    @Override public void onSettingsChanged() {
+    @Override
+    public void onSettingsChanged() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getContext());
         try {
             piano.concert_a = Integer.parseInt(sp.getString("concert_a", "440"));
@@ -113,5 +143,4 @@ public class PianoFragment extends SemitoneFragment {
         piano.labelc = sp.getBoolean("labelc", true);
         piano.notenames = Util.getNotenames(Util.naming(sp));
     }
-
 }

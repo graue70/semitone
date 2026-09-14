@@ -23,14 +23,14 @@ import android.text.TextPaint;
 
 public class Util {
 
-    public final static String[][] notenamesAll = {
+    public static final String[][] notenamesAll = {
         {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"},
         {"La", "La#", "Si", "Do", "Do#", "Ré", "Ré#", "Mi", "Fa", "Fa#", "Sol", "Sol#"},
         {"A", "Ais", "H", "C", "Cis", "D", "Dis", "E", "F", "Fis", "G", "Gis"},
     };
-    public final static String[] notenames = notenamesAll[0];
+    public static final String[] notenames = notenamesAll[0];
 
-    public final static int[] WHITE_PCS = {0, 2, 3, 5, 7, 8, 10};
+    public static final int[] WHITE_PCS = {0, 2, 3, 5, 7, 8, 10};
 
     public static String[] getNotenames(int naming) {
         return notenamesAll[Math.max(0, Math.min(naming, notenamesAll.length - 1))];
@@ -58,10 +58,9 @@ public class Util {
 
     public static int maxTextSize(String text, int maxWidth) {
         TextPaint paint = new TextPaint();
-        for (int textSize = 10;; ++textSize) {
+        for (int textSize = 10; ; ++textSize) {
             paint.setTextSize(textSize);
             if (paint.measureText(text) > maxWidth) return textSize - 1;
         }
     }
-
 }
