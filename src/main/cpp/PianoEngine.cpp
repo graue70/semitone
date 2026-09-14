@@ -34,8 +34,8 @@ PianoEngine::~PianoEngine() { deinit(); }
 void PianoEngine::init() {
     oboe::AudioStreamBuilder asb;
     asb.setChannelCount(1);
-    asb.setSharingMode(oboe::SharingMode::Exclusive);
-    asb.setPerformanceMode(oboe::PerformanceMode::LowLatency);
+    asb.setSharingMode(oboe::SharingMode::Shared);
+    asb.setPerformanceMode(oboe::PerformanceMode::None);
     asb.setCallback(this);
 
     oboe::Result res = asb.openStream(&stream);
@@ -44,13 +44,17 @@ void PianoEngine::init() {
         return;
     }
     sampleRate = stream->getSampleRate();
-    LOGI("output stream: sample rate %d, frames per burst %d",
-            sampleRate, stream->getFramesPerBurst());
 
-    stream->setBufferSizeInFrames(stream->getFramesPerBurst());
+    int32_t burst = stream->getFramesPerBurst();
+    stream->setBufferSizeInFrames(burst * 2);
     is16bit = stream->getFormat() == oboe::AudioFormat::I16;
     if (is16bit) buf16 = std::make_unique<float[]>(
             stream->getBufferCapacityInFrames() * stream->getChannelCount());
+
+    LOGI("output stream: api %s, sample rate %d, burst %d, buffer %d, 16bit %d, xruns supported %d",
+            oboe::convertToText(stream->getAudioApi()), sampleRate, burst,
+            stream->getBufferSizeInFrames(), is16bit, stream->isXRunCountSupported());
+
     stream->requestStart();
 }
 
@@ -135,6 +139,11 @@ void PianoEngine::playFile(const char *path, int concert_a) {
 }
 
 oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, void *data, int32_t frames) {
+    if (++logCounter % 50 == 0 && stream->isXRunCountSupported()) {
+        auto xruns = stream->getXRunCount();
+        LOGI("xruns after %d callbacks: %d", logCounter, xruns ? xruns.value() : -1);
+    }
+
     float *outBuf = is16bit ? buf16.get() : static_cast<float*>(data);
     int channels = stream->getChannelCount();
 
@@ -197,6 +206,7 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
 }
 
 void PianoEngine::onErrorAfterClose(oboe::AudioStream *stream, oboe::Result err) {
+    LOGE("stream error: %s", oboe::convertToText(err));
     if (err == oboe::Result::ErrorDisconnected && restartLock.try_lock()) {
         deinit();
         init();
