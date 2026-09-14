@@ -21,12 +21,12 @@ package mn.tck.semitone;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.webkit.WebView;
-
 import androidx.appcompat.app.AppCompatActivity;
 
 public class AboutActivity extends AppCompatActivity {
 
-    @Override protected void onCreate(Bundle state) {
+    @Override
+    protected void onCreate(Bundle state) {
         super.onCreate(state);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.activity_about);
@@ -36,9 +36,9 @@ public class AboutActivity extends AppCompatActivity {
         wv.setBackgroundColor(Color.TRANSPARENT);
     }
 
-    @Override public boolean onSupportNavigateUp() {
+    @Override
+    public boolean onSupportNavigateUp() {
         finish();
         return true;
     }
-
 }

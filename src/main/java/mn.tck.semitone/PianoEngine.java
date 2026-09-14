@@ -36,7 +36,7 @@ public class PianoEngine {
         System.loadLibrary("semitone-native");
     }
 
-    static public boolean create(Context context) {
+    public static boolean create(Context context) {
         if (handle != 0) return true;
 
         // use a robust low-performance stream configuration for bluetooth output,
@@ -60,11 +60,13 @@ public class PianoEngine {
         // keep oboe's defaults if the device doesn't report its output
         // configuration
         try {
-            setSampleRate(Integer.parseInt(am.getProperty(
-                            AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)));
-            setFramesPerBurst(Integer.parseInt(am.getProperty(
-                            AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)));
-        } catch (NumberFormatException e) {}
+            setSampleRate(
+                    Integer.parseInt(am.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)));
+            setFramesPerBurst(
+                    Integer.parseInt(
+                            am.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)));
+        } catch (NumberFormatException e) {
+        }
 
         paused = false;
         return true;
@@ -77,21 +79,45 @@ public class PianoEngine {
         paused = true;
     }
 
-    static void pause() { paused = true; doPause(handle); }
-    static void resume() { paused = false; doResume(handle); }
-    static void play(int pitch, int concert_a) { doPlay(handle, pitch, concert_a); }
-    static void stop(int pitch) { doStop(handle, pitch); }
-    static void playFile(String path, int concert_a) { doPlayFile(handle, path, concert_a); }
+    static void pause() {
+        paused = true;
+        doPause(handle);
+    }
+
+    static void resume() {
+        paused = false;
+        doResume(handle);
+    }
+
+    static void play(int pitch, int concert_a) {
+        doPlay(handle, pitch, concert_a);
+    }
+
+    static void stop(int pitch) {
+        doStop(handle, pitch);
+    }
+
+    static void playFile(String path, int concert_a) {
+        doPlayFile(handle, path, concert_a);
+    }
 
     private static native long createPianoEngine(AssetManager am);
-    private static native void destroyPianoEngine(long handle);
-    private static native void doPause(long handle);
-    private static native void doResume(long handle);
-    private static native void setSampleRate(int val);
-    private static native void setFramesPerBurst(int val);
-    private static native void setBluetoothOutput(boolean val);
-    private static native void doPlay(long handle, int pitch, int concert_a);
-    private static native void doStop(long handle, int pitch);
-    private static native void doPlayFile(long handle, String path, int concert_a);
 
+    private static native void destroyPianoEngine(long handle);
+
+    private static native void doPause(long handle);
+
+    private static native void doResume(long handle);
+
+    private static native void setSampleRate(int val);
+
+    private static native void setFramesPerBurst(int val);
+
+    private static native void setBluetoothOutput(boolean val);
+
+    private static native void doPlay(long handle, int pitch, int concert_a);
+
+    private static native void doStop(long handle, int pitch);
+
+    private static native void doPlayFile(long handle, String path, int concert_a);
 }

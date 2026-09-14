@@ -30,14 +30,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
-
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
-
 import java.util.ArrayList;
 
 public class MetronomeFragment extends SemitoneFragment {
@@ -67,11 +65,13 @@ public class MetronomeFragment extends SemitoneFragment {
     Tick tick;
     int strong, weak;
 
-    @Override public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
         return inflater.inflate(R.layout.metronome, container, false);
     }
 
-    @Override public void onViewCreated(View view, Bundle state) {
+    @Override
+    public void onViewCreated(View view, Bundle state) {
         this.view = view;
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -90,88 +90,106 @@ public class MetronomeFragment extends SemitoneFragment {
         dotsView = (LinearLayout) view.findViewById(R.id.dots);
 
         tempoBox.setValue(tempo);
-        tempoBox.cb = new NumBox.Callback() {
-            @Override public void onChange(int val) {
-                tempo = val;
-                editor.putInt("metronome_tempo", tempo);
-                editor.apply();
-                tempoBar.setProgress(tempo - MIN_TEMPO);
-                intermediateTempoChange();
-            }
-        };
+        tempoBox.cb =
+                new NumBox.Callback() {
+                    @Override
+                    public void onChange(int val) {
+                        tempo = val;
+                        editor.putInt("metronome_tempo", tempo);
+                        editor.apply();
+                        tempoBar.setProgress(tempo - MIN_TEMPO);
+                        intermediateTempoChange();
+                    }
+                };
         tempoBar.setProgress(tempo - MIN_TEMPO);
 
         beatsBox.setValue(beats);
-        beatsBox.cb = new NumBox.Callback() {
-            @Override public void onChange(int val) {
-                beats = val;
-                editor.putInt("metronome_beats", beats);
-                editor.apply();
-                intermediateBeatChange();
-            }
-        };
+        beatsBox.cb =
+                new NumBox.Callback() {
+                    @Override
+                    public void onChange(int val) {
+                        beats = val;
+                        editor.putInt("metronome_beats", beats);
+                        editor.apply();
+                        intermediateBeatChange();
+                    }
+                };
 
         subdivBox.setValue(subdiv);
-        subdivBox.cb = new NumBox.Callback() {
-            @Override public void onChange(int val) {
-                subdiv = val;
-                editor.putInt("metronome_subdiv", subdiv);
-                editor.apply();
-                intermediateTempoChange();
-            }
-        };
+        subdivBox.cb =
+                new NumBox.Callback() {
+                    @Override
+                    public void onChange(int val) {
+                        subdiv = val;
+                        editor.putInt("metronome_subdiv", subdiv);
+                        editor.apply();
+                        intermediateTempoChange();
+                    }
+                };
 
-        tempoBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar sb, int val, boolean fromUser) {
-                if (!fromUser) return;
-                tempo = val + MIN_TEMPO;
-                editor.putInt("metronome_tempo", tempo);
-                editor.apply();
-                tempoBox.setValue(tempo);
-                intermediateTempoChange();
-            }
-            @Override public void onStartTrackingTouch(SeekBar sb) {}
-            @Override public void onStopTrackingTouch(SeekBar sb) {}
-        });
+        tempoBar.setOnSeekBarChangeListener(
+                new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(SeekBar sb, int val, boolean fromUser) {
+                        if (!fromUser) return;
+                        tempo = val + MIN_TEMPO;
+                        editor.putInt("metronome_tempo", tempo);
+                        editor.apply();
+                        tempoBox.setValue(tempo);
+                        intermediateTempoChange();
+                    }
 
-        startBtn.setOnClickListener(new Button.OnClickListener() {
-            @Override public void onClick(View v) { toggle(); }
-        });
+                    @Override
+                    public void onStartTrackingTouch(SeekBar sb) {}
+
+                    @Override
+                    public void onStopTrackingTouch(SeekBar sb) {}
+                });
+
+        startBtn.setOnClickListener(
+                new Button.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        toggle();
+                    }
+                });
 
         taps = new long[TAPS_MAX];
         ntaps = 0;
-        tapBtn.setOnClickListener(new Button.OnClickListener() {
-            @Override public void onClick(View v) {
-                long time = SystemClock.elapsedRealtime();
-                if (ntaps > 0 && time - taps[ntaps-1] > 3000) {
-                    // time out after 3 seconds
-                    ntaps = 1;
-                    taps[0] = time;
-                } else if (ntaps == TAPS_MAX) {
-                    for (int i = 0; i < TAPS_MAX-1; ++i) taps[i] = taps[i+1];
-                    taps[TAPS_MAX-1] = time;
-                } else {
-                    taps[ntaps++] = time;
-                }
+        tapBtn.setOnClickListener(
+                new Button.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        long time = SystemClock.elapsedRealtime();
+                        if (ntaps > 0 && time - taps[ntaps - 1] > 3000) {
+                            // time out after 3 seconds
+                            ntaps = 1;
+                            taps[0] = time;
+                        } else if (ntaps == TAPS_MAX) {
+                            for (int i = 0; i < TAPS_MAX - 1; ++i) taps[i] = taps[i + 1];
+                            taps[TAPS_MAX - 1] = time;
+                        } else {
+                            taps[ntaps++] = time;
+                        }
 
-                if (ntaps > 1 && taps[ntaps-1] > taps[0]) {
-                    tempo = (int)(60000*(ntaps-1) / (taps[ntaps-1] - taps[0]));
-                    if (tempo < MIN_TEMPO) tempo = MIN_TEMPO;
-                    if (tempo > MAX_TEMPO) tempo = MAX_TEMPO;
-                    editor.putInt("metronome_tempo", tempo);
-                    editor.apply();
-                    tempoBox.setValue(tempo);
-                    tempoBar.setProgress(tempo - MIN_TEMPO);
-                    intermediateTempoChange();
-                }
-            }
-        });
+                        if (ntaps > 1 && taps[ntaps - 1] > taps[0]) {
+                            tempo = (int) (60000 * (ntaps - 1) / (taps[ntaps - 1] - taps[0]));
+                            if (tempo < MIN_TEMPO) tempo = MIN_TEMPO;
+                            if (tempo > MAX_TEMPO) tempo = MAX_TEMPO;
+                            editor.putInt("metronome_tempo", tempo);
+                            editor.apply();
+                            tempoBox.setValue(tempo);
+                            tempoBar.setProgress(tempo - MIN_TEMPO);
+                            intermediateTempoChange();
+                        }
+                    }
+                });
 
         final int smallSize = getResources().getDimensionPixelSize(R.dimen.small_dot),
-              largeSize = getResources().getDimensionPixelSize(R.dimen.large_dot);
-        dotOn     = makeDot(smallSize, R.color.white);
-        dotOnBig  = makeDot(largeSize, R.color.white);
-        dotOff    = makeDot(smallSize, R.color.grey1);
+                largeSize = getResources().getDimensionPixelSize(R.dimen.large_dot);
+        dotOn = makeDot(smallSize, R.color.white);
+        dotOnBig = makeDot(largeSize, R.color.white);
+        dotOff = makeDot(smallSize, R.color.grey1);
         dotOffBig = makeDot(largeSize, R.color.grey1);
 
         dotParams = new LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1);
@@ -180,12 +198,14 @@ public class MetronomeFragment extends SemitoneFragment {
         intermediateBeatChange();
     }
 
-    @Override public void onDestroyView() {
+    @Override
+    public void onDestroyView() {
         super.onDestroyView();
         stopTick();
     }
 
-    @Override public void onSettingsChanged() {}
+    @Override
+    public void onSettingsChanged() {}
 
     private ShapeDrawable makeDot(int size, int color) {
         ShapeDrawable dot = new ShapeDrawable(new OvalShape());
@@ -255,44 +275,54 @@ public class MetronomeFragment extends SemitoneFragment {
             dots.add(dot);
         }
 
-        if (enabled && activeDot > beats-1) activeDot = beats-1;
+        if (enabled && activeDot > beats - 1) activeDot = beats - 1;
     }
 
     class Tick extends Thread {
         protected volatile int tempo, subdiv, nTicks;
         protected volatile long startTime, nextTime;
         boolean keepGoing;
+
         public Tick(int tempo, int subdiv) {
             this.tempo = tempo;
             this.subdiv = subdiv;
             keepGoing = true;
         }
 
-        @Override public void run() {
+        @Override
+        public void run() {
             nTicks = 0;
             startTime = SystemClock.elapsedRealtime();
             nextTime = startTime;
             while (keepGoing) {
                 long diff = nextTime - SystemClock.elapsedRealtime();
-                if (diff <= 0) {}
+                if (diff <= 0) {
+                }
                 // else if (diff <= 5) {
                 //     // 5ms - arbitrary cutoff for when to busyloop
                 //     while (SystemClock.elapsedRealtime() < nextTime);
                 // }
                 else {
                     // we have a while - sleep and check again
-                    try { Thread.sleep(diff); } catch (InterruptedException e) {}
+                    try {
+                        Thread.sleep(diff);
+                    } catch (InterruptedException e) {
+                    }
                     continue;
                 }
 
                 if (PianoEngine.paused) {
                     // the app was backgrounded and the setting to keep ticking
                     // is off, so stop the metronome
-                    if (getActivity() != null) getActivity().runOnUiThread(new Runnable() {
-                        @Override public void run() {
-                            toggle();
-                        }
-                    });
+                    if (getActivity() != null)
+                        getActivity()
+                                .runOnUiThread(
+                                        new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                toggle();
+                                            }
+                                        });
                     break;
                 }
 
@@ -300,17 +330,30 @@ public class MetronomeFragment extends SemitoneFragment {
                 if (nTicks % subdiv == 0) activeDot = (activeDot + 1) % beats;
                 boolean big = activeDot >= 0 && activeDot < dots.size() && dots.get(activeDot).big;
                 PianoEngine.playFile(nTicks % subdiv == 0 && big ? "strong.mp3" : "weak.mp3", 440);
-                if (getActivity() != null) getActivity().runOnUiThread(new Runnable() {
-                    @Override public void run() {
-                        if (activeDot >= 0 && activeDot < dots.size()) dots.get(activeDot).turnOn();
-                    }
-                });
-                try { Thread.sleep(Math.min(100, (long)(delayTime()/2))); } catch (InterruptedException e) {}
-                if (getActivity() != null) getActivity().runOnUiThread(new Runnable() {
-                    @Override public void run() {
-                        if (activeDot >= 0 && activeDot < dots.size()) dots.get(activeDot).turnOff();
-                    }
-                });
+                if (getActivity() != null)
+                    getActivity()
+                            .runOnUiThread(
+                                    new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (activeDot >= 0 && activeDot < dots.size())
+                                                dots.get(activeDot).turnOn();
+                                        }
+                                    });
+                try {
+                    Thread.sleep(Math.min(100, (long) (delayTime() / 2)));
+                } catch (InterruptedException e) {
+                }
+                if (getActivity() != null)
+                    getActivity()
+                            .runOnUiThread(
+                                    new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (activeDot >= 0 && activeDot < dots.size())
+                                                dots.get(activeDot).turnOff();
+                                        }
+                                    });
 
                 // queue the next tick
                 nextTime = tickTime(++nTicks);
@@ -321,11 +364,14 @@ public class MetronomeFragment extends SemitoneFragment {
             return startTime + Math.round(nTick * delayTime());
         }
 
-        protected double delayTime() { return 1000 * 60.0 / (tempo*subdiv); }
+        protected double delayTime() {
+            return 1000 * 60.0 / (tempo * subdiv);
+        }
     }
 
     class Dot extends ImageView {
         boolean big;
+
         public Dot(Context context, boolean big) {
             super(context);
             this.big = big;
@@ -333,7 +379,8 @@ public class MetronomeFragment extends SemitoneFragment {
             setLayoutParams(dotParams);
         }
 
-        @Override public boolean onTouchEvent(MotionEvent ev) {
+        @Override
+        public boolean onTouchEvent(MotionEvent ev) {
             if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
                 big = !big;
                 turnOff();
@@ -342,8 +389,12 @@ public class MetronomeFragment extends SemitoneFragment {
             return false;
         }
 
-        public void turnOff() { setImageDrawable(big ? dotOffBig : dotOff); }
-        public void turnOn()  { setImageDrawable(big ? dotOnBig  : dotOn);  }
-    }
+        public void turnOff() {
+            setImageDrawable(big ? dotOffBig : dotOff);
+        }
 
+        public void turnOn() {
+            setImageDrawable(big ? dotOnBig : dotOn);
+        }
+    }
 }

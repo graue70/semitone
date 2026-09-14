@@ -22,9 +22,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.widget.TextView;
 import android.util.AttributeSet;
-
+import android.widget.TextView;
 import java.util.Locale;
 
 public class CentErrorView extends TextView {
@@ -51,20 +50,20 @@ public class CentErrorView extends TextView {
 
     public void setError(double error) {
         this.error = error;
-        setText(String.format(Locale.US, "%+.2f %s", error*100, cents));
+        setText(String.format(Locale.US, "%+.2f %s", error * 100, cents));
     }
 
-    @Override protected void onDraw(Canvas canvas) {
+    @Override
+    protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         int width = getWidth(), height = getHeight(), middle = width / 2;
 
         // draw middle indicator
-        canvas.drawLine(middle, 0, middle, height/4, centerPaint);
-        canvas.drawLine(middle, height*3/4, middle, height, centerPaint);
+        canvas.drawLine(middle, 0, middle, height / 4, centerPaint);
+        canvas.drawLine(middle, height * 3 / 4, middle, height, centerPaint);
 
         // draw error position
-        int xpos = middle + (int)(error*width);
+        int xpos = middle + (int) (error * width);
         canvas.drawLine(xpos, 0, xpos, height, linePaint);
     }
-
 }

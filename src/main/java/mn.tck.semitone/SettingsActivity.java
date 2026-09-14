@@ -21,35 +21,38 @@ package mn.tck.semitone;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Window;
-
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    @Override protected void onCreate(Bundle state) {
+    @Override
+    protected void onCreate(Bundle state) {
         super.onCreate(state);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.activity_settings);
 
         getSupportFragmentManager()
-            .beginTransaction()
-            .replace(R.id.settingsframe, new SettingsFragment())
-            .commit();
+                .beginTransaction()
+                .replace(R.id.settingsframe, new SettingsFragment())
+                .commit();
 
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override public void handleOnBackPressed() {
-                Intent data = new Intent();
-                setResult(Activity.RESULT_OK, data);
-                finish();
-            }
-        });
+        getOnBackPressedDispatcher()
+                .addCallback(
+                        this,
+                        new OnBackPressedCallback(true) {
+                            @Override
+                            public void handleOnBackPressed() {
+                                Intent data = new Intent();
+                                setResult(Activity.RESULT_OK, data);
+                                finish();
+                            }
+                        });
     }
 
-    @Override public boolean onSupportNavigateUp() {
+    @Override
+    public boolean onSupportNavigateUp() {
         getOnBackPressedDispatcher().onBackPressed();
         return true;
     }
-
 }

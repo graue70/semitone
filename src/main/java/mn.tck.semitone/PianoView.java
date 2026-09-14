@@ -23,20 +23,17 @@ import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.util.SparseIntArray;
 import android.view.MotionEvent;
 import android.view.View;
-
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
-
-import android.util.SparseIntArray;
 
 public class PianoView extends View {
 
     public int rows, keys, pitch;
     protected int whiteWidth, whiteHeight, blackWidth, blackHeight;
     protected Paint whitePaint, grey1Paint, grey3Paint, grey4Paint, blackPaint;
-
     protected final int OUTLINE = 2, YPAD = 20;
     final int SAMPLE_RATE = 44100;
     final int MAX_TRACKS = 10;
@@ -90,10 +87,9 @@ public class PianoView extends View {
             }
         }
 
-
         if (inval) {
             SharedPreferences.Editor editor =
-                PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
+                    PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
             editor.putInt("piano_rows", rows);
             editor.putInt("piano_keys", keys);
             editor.putInt("piano_pitch", pitch);
@@ -103,7 +99,8 @@ public class PianoView extends View {
         }
     }
 
-    @Override protected void onDraw(Canvas canvas) {
+    @Override
+    protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         int width = getWidth(), height = getHeight();
 
@@ -117,7 +114,8 @@ public class PianoView extends View {
         if (labelWidth != whiteWidth || labelNames != notenames) {
             labelWidth = whiteWidth;
             labelNames = notenames;
-            labelTextSize = Util.maxTextSize(Util.widestWhiteName(notenames) + "0", whiteWidth * 2/3);
+            labelTextSize =
+                    Util.maxTextSize(Util.widestWhiteName(notenames) + "0", whiteWidth * 2 / 3);
             blackPaint.setTextSize(labelTextSize);
         }
 
@@ -127,28 +125,40 @@ public class PianoView extends View {
                 int p = pitches[row][key];
 
                 canvas.drawRect(x, y, x + whiteWidth, y + whiteHeight - YPAD, grey3Paint);
-                canvas.drawRect(x + OUTLINE, y, x + whiteWidth - OUTLINE,
-                        y + whiteHeight - OUTLINE*2 - YPAD,
+                canvas.drawRect(
+                        x + OUTLINE,
+                        y,
+                        x + whiteWidth - OUTLINE,
+                        y + whiteHeight - OUTLINE * 2 - YPAD,
                         pressed[p] ? grey4Paint : whitePaint);
 
-                if (labelnotes && (!labelc || p % 12 == 0)) canvas.drawText(
-                        notenames[(p+3)%12] + (p/12 - 1),
-                        x + whiteWidth/2, y + whiteHeight*4/5, blackPaint);
+                if (labelnotes && (!labelc || p % 12 == 0))
+                    canvas.drawText(
+                            notenames[(p + 3) % 12] + (p / 12 - 1),
+                            x + whiteWidth / 2,
+                            y + whiteHeight * 4 / 5,
+                            blackPaint);
 
-                if (hasBlackLeft(p)) canvas.drawRect(
-                        x, y,
-                        x + blackWidth / 2, y + blackHeight,
-                        pressed[p-1] ? grey1Paint : blackPaint);
-                if (hasBlackRight(p)) canvas.drawRect(
-                        x + whiteWidth - blackWidth / 2, y,
-                        x + whiteWidth, y + blackHeight,
-                        pressed[p+1] ? grey1Paint : blackPaint);
-
+                if (hasBlackLeft(p))
+                    canvas.drawRect(
+                            x,
+                            y,
+                            x + blackWidth / 2,
+                            y + blackHeight,
+                            pressed[p - 1] ? grey1Paint : blackPaint);
+                if (hasBlackRight(p))
+                    canvas.drawRect(
+                            x + whiteWidth - blackWidth / 2,
+                            y,
+                            x + whiteWidth,
+                            y + blackHeight,
+                            pressed[p + 1] ? grey1Paint : blackPaint);
             }
         }
     }
 
-    @Override public boolean onTouchEvent(MotionEvent ev) {
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
         // we want to be able to swipe on the piano without swiping to a
         // different tab
         getParent().requestDisallowInterceptTouchEvent(true);
@@ -157,67 +167,68 @@ public class PianoView extends View {
         int pid, p, prev;
 
         switch (ev.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                pid = ev.getPointerId(0);
+                p = getPitch(ev, 0);
+                pointers.put(pid, p);
+                play(p);
+                invalidate();
+                return true;
 
-        case MotionEvent.ACTION_DOWN:
-            pid = ev.getPointerId(0); p = getPitch(ev, 0);
-            pointers.put(pid, p);
-            play(p);
-            invalidate();
-            return true;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                pid = ev.getPointerId(ev.getActionIndex());
+                p = getPitch(ev, ev.getActionIndex());
+                pointers.put(pid, p);
+                play(p);
+                invalidate();
+                return true;
 
-        case MotionEvent.ACTION_POINTER_DOWN:
-            pid = ev.getPointerId(ev.getActionIndex()); p = getPitch(ev, ev.getActionIndex());
-            pointers.put(pid, p);
-            play(p);
-            invalidate();
-            return true;
-
-        case MotionEvent.ACTION_MOVE:
-            boolean anyChange = false;
-            for (int i = 0; i < np; ++i) {
-                pid = ev.getPointerId(i); p = getPitch(ev, i);
-                prev = pointers.get(pid, -1);
-                if (prev != p) {
-                    if (prev >= 0) stop(prev);
-                    pointers.put(pid, p);
-                    play(p);
-                    anyChange = true;
+            case MotionEvent.ACTION_MOVE:
+                boolean anyChange = false;
+                for (int i = 0; i < np; ++i) {
+                    pid = ev.getPointerId(i);
+                    p = getPitch(ev, i);
+                    prev = pointers.get(pid, -1);
+                    if (prev != p) {
+                        if (prev >= 0) stop(prev);
+                        pointers.put(pid, p);
+                        play(p);
+                        anyChange = true;
+                    }
                 }
-            }
-            if (anyChange) invalidate();
-            return true;
+                if (anyChange) invalidate();
+                return true;
 
-        case MotionEvent.ACTION_UP:
-            pid = ev.getPointerId(0);
-            prev = pointers.get(pid, -1);
-            if (prev >= 0) stop(prev);
-            pointers.delete(pid);
-            invalidate();
-            return true;
+            case MotionEvent.ACTION_UP:
+                pid = ev.getPointerId(0);
+                prev = pointers.get(pid, -1);
+                if (prev >= 0) stop(prev);
+                pointers.delete(pid);
+                invalidate();
+                return true;
 
-        case MotionEvent.ACTION_POINTER_UP:
-            pid = ev.getPointerId(ev.getActionIndex());
-            prev = pointers.get(pid, -1);
-            if (prev >= 0) stop(prev);
-            pointers.delete(pid);
-            invalidate();
-            return true;
-
+            case MotionEvent.ACTION_POINTER_UP:
+                pid = ev.getPointerId(ev.getActionIndex());
+                prev = pointers.get(pid, -1);
+                if (prev >= 0) stop(prev);
+                pointers.delete(pid);
+                invalidate();
+                return true;
         }
 
         return false;
     }
 
     private int getPitch(MotionEvent ev, int pidx) {
-        int row = Math.min((int)(ev.getY(pidx) / whiteHeight), rows-1),
-            key = Math.min((int)(ev.getX(pidx) / whiteWidth), keys-1),
-            p = pitches[row][key];
+        int row = Math.min((int) (ev.getY(pidx) / whiteHeight), rows - 1),
+                key = Math.min((int) (ev.getX(pidx) / whiteWidth), keys - 1),
+                p = pitches[row][key];
 
-        if (ev.getY(pidx) - row*whiteHeight < blackHeight) {
+        if (ev.getY(pidx) - row * whiteHeight < blackHeight) {
             // we're high enough to hit a black key - check if we do
-            int x = (int)(ev.getX(pidx) - key*whiteWidth);
-            if (x < blackWidth/2 && hasBlackLeft(p)) --p;
-            else if (x > whiteWidth - blackWidth/2 && hasBlackRight(p)) ++p;
+            int x = (int) (ev.getX(pidx) - key * whiteWidth);
+            if (x < blackWidth / 2 && hasBlackLeft(p)) --p;
+            else if (x > whiteWidth - blackWidth / 2 && hasBlackRight(p)) ++p;
         }
 
         return p < 0 || p > 128 ? 0 : p;
@@ -226,7 +237,7 @@ public class PianoView extends View {
     private void play(int pitch) {
         pressed[pitch] = true;
         if (sustain) PianoEngine.play(pitch, concert_a);
-        else PianoEngine.playFile("piano/"+pitch+".mp3", concert_a);
+        else PianoEngine.playFile("piano/" + pitch + ".mp3", concert_a);
     }
 
     private void stop(int pitch) {
@@ -234,7 +245,11 @@ public class PianoView extends View {
         if (sustain) PianoEngine.stop(pitch);
     }
 
-    protected boolean hasBlackLeft(int p) { return p % 12 != 5 && p % 12 != 0; }
-    protected boolean hasBlackRight(int p) { return p % 12 != 4 && p % 12 != 11; }
+    protected boolean hasBlackLeft(int p) {
+        return p % 12 != 5 && p % 12 != 0;
+    }
 
+    protected boolean hasBlackRight(int p) {
+        return p % 12 != 4 && p % 12 != 11;
+    }
 }

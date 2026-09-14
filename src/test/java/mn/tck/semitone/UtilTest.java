@@ -25,20 +25,23 @@ import org.junit.Test;
 
 public class UtilTest {
 
-    @Test public void getNotenamesClamps() {
+    @Test
+    public void getNotenamesClamps() {
         assertSame(Util.notenamesAll[0], Util.getNotenames(-3));
         assertSame(Util.notenamesAll[1], Util.getNotenames(1));
         assertSame(Util.notenamesAll[2], Util.getNotenames(2));
         assertSame(Util.notenamesAll[2], Util.getNotenames(17));
     }
 
-    @Test public void widestNamePicksFirstLongest() {
+    @Test
+    public void widestNamePicksFirstLongest() {
         assertEquals("A#", Util.widestName(new String[] {"A", "A#", "B"}));
         assertEquals("Sol#", Util.widestName(Util.notenamesAll[1]));
         assertEquals("Ais", Util.widestName(Util.notenamesAll[2]));
     }
 
-    @Test public void widestWhiteNameIgnoresBlackKeys() {
+    @Test
+    public void widestWhiteNameIgnoresBlackKeys() {
         // "Ais" sits on a black key in the german naming, so among the white
         // keys "H" is the widest
         assertEquals("H", Util.widestWhiteName(Util.notenamesAll[2]));

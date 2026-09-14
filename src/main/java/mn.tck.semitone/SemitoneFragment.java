@@ -26,7 +26,8 @@ public abstract class SemitoneFragment extends Fragment {
         MainActivity.fragments.add(this);
     }
 
-    @Override public void onDestroy() {
+    @Override
+    public void onDestroy() {
         MainActivity.fragments.remove(this);
         super.onDestroy();
     }
