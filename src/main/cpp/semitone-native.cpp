@@ -53,6 +53,11 @@ JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setFramesPerBurst
     oboe::DefaultStreamValues::FramesPerBurst = (int32_t) val;
 }
 
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setBluetoothOutput
+  (JNIEnv*, jclass, jboolean val) {
+    PianoEngine::bluetoothOutput = (bool) val;
+}
+
 JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doPlay
   (JNIEnv*, jclass, jlong handle, jint pitch, jint concert_a) {
     PianoEngine *engine = reinterpret_cast<PianoEngine*>(handle);

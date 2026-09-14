@@ -31,11 +31,18 @@
 PianoEngine::PianoEngine(AAssetManager &am) : am(am) { init(); }
 PianoEngine::~PianoEngine() { deinit(); }
 
+bool PianoEngine::bluetoothOutput = false;
+
 void PianoEngine::init() {
     oboe::AudioStreamBuilder asb;
     asb.setChannelCount(1);
-    asb.setSharingMode(oboe::SharingMode::Shared);
-    asb.setPerformanceMode(oboe::PerformanceMode::None);
+    if (bluetoothOutput) {
+        asb.setSharingMode(oboe::SharingMode::Shared);
+        asb.setPerformanceMode(oboe::PerformanceMode::None);
+    } else {
+        asb.setSharingMode(oboe::SharingMode::Exclusive);
+        asb.setPerformanceMode(oboe::PerformanceMode::LowLatency);
+    }
     asb.setCallback(this);
 
     oboe::Result res = asb.openStream(&stream);
@@ -46,13 +53,13 @@ void PianoEngine::init() {
     sampleRate = stream->getSampleRate();
 
     int32_t burst = stream->getFramesPerBurst();
-    stream->setBufferSizeInFrames(burst * 2);
+    stream->setBufferSizeInFrames(bluetoothOutput ? burst * 2 : burst);
     is16bit = stream->getFormat() == oboe::AudioFormat::I16;
     if (is16bit) buf16 = std::make_unique<float[]>(
             stream->getBufferCapacityInFrames() * stream->getChannelCount());
 
-    LOGI("output stream: api %s, sample rate %d, burst %d, buffer %d, 16bit %d, xruns supported %d",
-            oboe::convertToText(stream->getAudioApi()), sampleRate, burst,
+    LOGI("output stream: api %s, bt %d, sample rate %d, burst %d, buffer %d, 16bit %d, xruns supported %d",
+            oboe::convertToText(stream->getAudioApi()), bluetoothOutput, sampleRate, burst,
             stream->getBufferSizeInFrames(), is16bit, stream->isXRunCountSupported());
 
     stream->requestStart();

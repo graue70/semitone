@@ -37,6 +37,8 @@ class PianoEngine : oboe::AudioStreamCallback {
 public:
     explicit PianoEngine(AAssetManager &am);
     ~PianoEngine();
+
+    static bool bluetoothOutput;
     void play(int pitch, int concert_a);
     void stop(int pitch);
     void pause();
