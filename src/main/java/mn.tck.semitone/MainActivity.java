@@ -75,6 +75,7 @@ public class MainActivity extends FragmentActivity {
         if (!sp.contains("sustain")) e.putBoolean("sustain", false);
         if (!sp.contains("labelnotes")) e.putBoolean("labelnotes", true);
         if (!sp.contains("labelc")) e.putBoolean("labelc", true);
+        if (!sp.contains("notenames")) e.putString("notenames", "0");
         e.apply();
 
         keeptick = sp.getBoolean("keeptick", false);

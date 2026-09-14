@@ -115,6 +115,7 @@ public class PianoFragment extends SemitoneFragment {
         piano.sustain = sp.getBoolean("sustain", false);
         piano.labelnotes = sp.getBoolean("labelnotes", true);
         piano.labelc = sp.getBoolean("labelc", true);
+        piano.notenames = Util.getNotenames(Util.naming(sp));
     }
 
 }

@@ -23,6 +23,14 @@
             android:summary="@string/concert_a_summary"
             android:dialogTitle="@string/concert_a_dialog" />
 
+        <ListPreference
+            android:key="notenames"
+            android:title="@string/notenames_title"
+            android:summary="@string/notenames_summary"
+            android:entries="@array/notenames_entries"
+            android:entryValues="@array/notenames_values"
+            android:defaultValue="0" />
+
     </PreferenceCategory>
 
     <PreferenceCategory

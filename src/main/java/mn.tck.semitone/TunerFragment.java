@@ -44,6 +44,7 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
     CentErrorView centerror;
 
     int concert_a;
+    String[] names = Util.notenames;
 
     double[] dbuf, hist, sorted;
 
@@ -81,10 +82,8 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
                 new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override public void onGlobalLayout() {
                 notename.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                notenamesize = Util.maxTextSize("G#000", notename.getWidth());
-                if (RecordEngine.created) {
-                    notename.setTextSize(TypedValue.COMPLEX_UNIT_PX, notenamesize);
-                } else {
+                fitNoteName();
+                if (!RecordEngine.created) {
                     notename.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
                     notename.setText(getResources().getString(R.string.micperm));
                     notename.setOnClickListener(new View.OnClickListener() {
@@ -100,6 +99,13 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
         onSettingsChanged();
     }
 
+    private void fitNoteName() {
+        if (notename.getWidth() == 0) return;
+        notenamesize = Util.maxTextSize(Util.widestName(names) + "000", notename.getWidth());
+        if (RecordEngine.created)
+            notename.setTextSize(TypedValue.COMPLEX_UNIT_PX, notenamesize);
+    }
+
     @Override public void onSettingsChanged() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getContext());
         try {
@@ -107,6 +113,8 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
         } catch (NumberFormatException e) {
             concert_a = 440;
         }
+        names = Util.getNotenames(Util.naming(sp));
+        fitNoteName();
     }
 
     @Override public void onRecordUpdate(short[] buf) {
@@ -137,7 +145,7 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
         if (getActivity() != null) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override public void run() {
-                    notename.setText(Util.notenames[note] +
+                    notename.setText(names[note] +
                         (octave + 5 - (note <= 2 ? 1 : 0)));
                     centerror.setError(median - rounded);
                 }
