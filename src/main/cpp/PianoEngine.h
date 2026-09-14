@@ -22,6 +22,8 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <string>
+#include <unordered_map>
 
 #include <android/asset_manager.h>
 #include <oboe/Oboe.h>
@@ -54,6 +56,7 @@ public:
 private:
     void init();
     void deinit();
+    std::shared_ptr<const std::vector<float>> loadSound(const char *path, int concert_a);
 
     AAssetManager &am;
 
@@ -72,6 +75,11 @@ private:
     std::atomic<Tone*> tones[MAX_TONES] = {};
     std::atomic<Sound*> sounds[MAX_SOUNDS] = {};
     std::atomic<int> mode {TONE_MODE};
+
+    // decoded samples by path/concert pitch/sample rate; sounds reference
+    // the buffers by shared_ptr, so playback survives cache eviction
+    std::unordered_map<std::string, std::shared_ptr<const std::vector<float>>> decodedCache;
+    std::mutex cacheLock;
 
     std::mutex restartLock, tonesLock, soundsLock;
 
