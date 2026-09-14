@@ -38,7 +38,7 @@ void PianoEngine::init() {
     asb.setChannelCount(1);
     if (bluetoothOutput) {
         asb.setSharingMode(oboe::SharingMode::Shared);
-        asb.setPerformanceMode(oboe::PerformanceMode::None);
+        asb.setPerformanceMode(oboe::PerformanceMode::LowLatency);
     } else {
         asb.setSharingMode(oboe::SharingMode::Exclusive);
         asb.setPerformanceMode(oboe::PerformanceMode::LowLatency);
