@@ -48,6 +48,7 @@ jobs:
         run: |
           sdkmanager="$(command -v sdkmanager ||
             echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          echo "$(dirname "$sdkmanager")" >> "$GITHUB_PATH"
           yes | "$sdkmanager" --licenses > /dev/null
 
       - name: install ndk and cmake
