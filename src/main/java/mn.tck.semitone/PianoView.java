@@ -47,6 +47,7 @@ public class PianoView extends View {
 
     protected int concert_a;
     protected boolean sustain, labelnotes, labelc;
+    protected String[] notenames = Util.notenames;
 
     public PianoView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -107,7 +108,8 @@ public class PianoView extends View {
         whiteHeight = height / rows;
         blackWidth = whiteWidth * 2 / 3;
         blackHeight = whiteHeight / 2;
-        blackPaint.setTextSize(Util.maxTextSize("G0", whiteWidth * 2/3));
+        blackPaint.setTextSize(
+                Util.maxTextSize(Util.widestWhiteName(notenames) + "0", whiteWidth * 2/3));
 
         for (int row = 0; row < rows; ++row) {
             for (int key = 0; key < keys; ++key) {
@@ -120,7 +122,7 @@ public class PianoView extends View {
                         pressed[p] ? grey4Paint : whitePaint);
 
                 if (labelnotes && (!labelc || p % 12 == 0)) canvas.drawText(
-                        Util.notenames[(p+3)%12] + (p/12 - 1),
+                        notenames[(p+3)%12] + (p/12 - 1),
                         x + whiteWidth/2, y + whiteHeight*4/5, blackPaint);
 
                 if (hasBlackLeft(p)) canvas.drawRect(

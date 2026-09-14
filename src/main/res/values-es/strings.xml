@@ -18,6 +18,9 @@
     <string name="concert_a_summary">Ajustar la frecuencia de A4 (para afinaciones alternativas)</string>
     <string name="concert_a_dialog">Tono de A4 (en Hz)</string>
 
+    <string name="notenames_title">Nombres de las notas</string>
+    <string name="notenames_summary">Notación usada en el afinador y en las etiquetas del piano</string>
+
     <string name="keeptick_title">Chasquear de fondo</string>
     <string name="keeptick_summary">Continuar reproduciendo sonido después de que se cierre la aplicación</string>
 

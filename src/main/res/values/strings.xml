@@ -18,6 +18,9 @@
     <string name="concert_a_summary">Set the frequency of A4 (for alternative tunings)</string>
     <string name="concert_a_dialog">A4 pitch (in Hz)</string>
 
+    <string name="notenames_title">Note names</string>
+    <string name="notenames_summary">Notation used for the tuner and for piano key labels</string>
+
     <string name="keeptick_title">Tick in background</string>
     <string name="keeptick_summary">Continue playing sound after app is closed</string>
 
