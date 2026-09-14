@@ -21,128 +21,145 @@
 #include <math.h>
 
 #include <android/log.h>
-#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, "semitone", __VA_ARGS__)
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,   "semitone", __VA_ARGS__)
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,    "semitone", __VA_ARGS__)
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,    "semitone", __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,   "semitone", __VA_ARGS__)
-#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,   "semitone", __VA_ARGS__)
 
 PianoEngine::PianoEngine(AAssetManager &am) : am(am) { init(); }
 PianoEngine::~PianoEngine() { deinit(); }
 
-bool PianoEngine::bluetoothOutput = false;
+std::atomic<bool> PianoEngine::bluetoothOutput {false};
 
 void PianoEngine::init() {
+    bool bluetooth = bluetoothOutput.load(std::memory_order_relaxed);
+
     oboe::AudioStreamBuilder asb;
     asb.setChannelCount(1);
-    if (bluetoothOutput) {
+    if (bluetooth) {
+        // use a robust low-performance stream configuration for bluetooth
+        // output, where exclusive low-latency streams tend to produce
+        // constant underruns
         asb.setSharingMode(oboe::SharingMode::Shared);
-        asb.setPerformanceMode(oboe::PerformanceMode::LowLatency);
     } else {
         asb.setSharingMode(oboe::SharingMode::Exclusive);
-        asb.setPerformanceMode(oboe::PerformanceMode::LowLatency);
     }
+    asb.setPerformanceMode(oboe::PerformanceMode::LowLatency);
     asb.setCallback(this);
 
-    oboe::Result res = asb.openStream(&stream);
-    if (res != oboe::Result::OK || stream == nullptr) {
-        sampleRate = oboe::DefaultStreamValues::SampleRate;
+    oboe::AudioStream *newStream = nullptr;
+    oboe::Result res = asb.openStream(&newStream);
+    if (res != oboe::Result::OK || newStream == nullptr) {
+        sampleRate.store(oboe::DefaultStreamValues::SampleRate, std::memory_order_relaxed);
+        LOGE("could not open output stream: %s", oboe::convertToText(res));
         return;
     }
-    sampleRate = stream->getSampleRate();
 
-    int32_t burst = stream->getFramesPerBurst();
-    stream->setBufferSizeInFrames(bluetoothOutput ? burst * 2 : burst);
-    is16bit = stream->getFormat() == oboe::AudioFormat::I16;
+    sampleRate.store(newStream->getSampleRate(), std::memory_order_relaxed);
+
+    int32_t burst = newStream->getFramesPerBurst();
+    newStream->setBufferSizeInFrames(bluetooth ? burst * 2 : burst);
+    is16bit = newStream->getFormat() == oboe::AudioFormat::I16;
     if (is16bit) buf16 = std::make_unique<float[]>(
-            stream->getBufferCapacityInFrames() * stream->getChannelCount());
+            newStream->getBufferCapacityInFrames() * newStream->getChannelCount());
 
     LOGI("output stream: api %s, bt %d, sample rate %d, burst %d, buffer %d, 16bit %d, xruns supported %d",
-            oboe::convertToText(stream->getAudioApi()), bluetoothOutput, sampleRate, burst,
-            stream->getBufferSizeInFrames(), is16bit, stream->isXRunCountSupported());
+            oboe::convertToText(newStream->getAudioApi()), bluetooth,
+            newStream->getSampleRate(), burst, newStream->getBufferSizeInFrames(),
+            is16bit, newStream->isXRunCountSupported());
 
-    stream->requestStart();
+    // publish the stream only after it is fully configured, then start it
+    stream.store(newStream, std::memory_order_release);
+    newStream->requestStart();
 }
 
 void PianoEngine::deinit() {
-    if (stream != nullptr) {
-        stream->requestStop();
-        stream->close();
-        stream = nullptr;
+    // taking the current stream out of the slot also keeps ui threads from
+    // touching it while we close it; by the time this returns, the audio
+    // callback is no longer running
+    oboe::AudioStream *s = stream.exchange(nullptr, std::memory_order_acquire);
+    if (s != nullptr) {
+        s->requestStop();
+        s->close();
     }
-    tonesLock.lock();
-    for (int i = 0; i < MAX_TONES; ++i) {
-        if (tones[i] != nullptr) {
-            delete tones[i];
-            tones[i] = nullptr;
+
+    {
+        std::lock_guard<std::mutex> lock(tonesLock);
+        for (int i = 0; i < MAX_TONES; ++i) {
+            Tone *tmp = tones[i].exchange(nullptr, std::memory_order_relaxed);
+            delete tmp;
         }
     }
-    tonesLock.unlock();
-    soundsLock.lock();
-    for (int i = 0; i < MAX_SOUNDS; ++i) {
-        if (sounds[i] != nullptr) {
-            delete sounds[i];
-            sounds[i] = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(soundsLock);
+        for (int i = 0; i < MAX_SOUNDS; ++i) {
+            Sound *tmp = sounds[i].exchange(nullptr, std::memory_order_relaxed);
+            delete tmp;
         }
     }
-    soundsLock.unlock();
 }
 
 void PianoEngine::pause() {
-    if (stream != nullptr) stream->requestPause();
-    /* stream->waitForStateChange(oboe::StreamState::Pausing, nullptr, 1000000000); */
-    tonesLock.lock();
-    for (int i = 0; i < MAX_TONES; ++i) {
-        Tone *tmp = tones[i];
-        if (tmp != nullptr) tmp->stopped = true;
+    oboe::AudioStream *s = stream.load(std::memory_order_relaxed);
+    if (s != nullptr) s->requestPause();
+
+    {
+        std::lock_guard<std::mutex> lock(tonesLock);
+        for (int i = 0; i < MAX_TONES; ++i) {
+            Tone *tmp = tones[i].load(std::memory_order_relaxed);
+            if (tmp != nullptr) tmp->stopped.store(true, std::memory_order_relaxed);
+        }
     }
-    tonesLock.unlock();
-    soundsLock.lock();
-    for (int i = 0; i < MAX_SOUNDS; ++i) {
-        Sound *tmp = sounds[i];
-        if (tmp != nullptr) tmp->stopped = true;
+    {
+        std::lock_guard<std::mutex> lock(soundsLock);
+        for (int i = 0; i < MAX_SOUNDS; ++i) {
+            Sound *tmp = sounds[i].load(std::memory_order_relaxed);
+            if (tmp != nullptr) tmp->stopped.store(true, std::memory_order_relaxed);
+        }
     }
-    soundsLock.unlock();
 }
 
 void PianoEngine::resume() {
-    if (stream != nullptr) stream->requestStart();
+    oboe::AudioStream *s = stream.load(std::memory_order_relaxed);
+    if (s != nullptr) s->requestStart();
 }
 
 void PianoEngine::play(int pitch, int concert_a) {
-    mode = TONE_MODE;
-    tonesLock.lock();
+    mode.store(TONE_MODE, std::memory_order_relaxed);
+    std::lock_guard<std::mutex> lock(tonesLock);
     for (int i = 0; i < MAX_TONES; ++i) {
-        if (tones[i] == nullptr) {
-            tones[i] = new Tone(pitch, concert_a, sampleRate);
+        if (tones[i].load(std::memory_order_relaxed) == nullptr) {
+            tones[i].store(new Tone(pitch, concert_a, sampleRate.load(std::memory_order_relaxed)),
+                    std::memory_order_release);
             break;
         }
     }
-    tonesLock.unlock();
 }
 
 void PianoEngine::stop(int pitch) {
-    tonesLock.lock();
+    std::lock_guard<std::mutex> lock(tonesLock);
     for (int i = 0; i < MAX_TONES; ++i) {
-        Tone *t = tones[i];
-        if (t != nullptr && t->pitch == pitch) t->stopped = true;
+        Tone *t = tones[i].load(std::memory_order_relaxed);
+        if (t != nullptr && t->pitch == pitch) t->stopped.store(true, std::memory_order_relaxed);
     }
-    tonesLock.unlock();
 }
 
 void PianoEngine::playFile(const char *path, int concert_a) {
-    mode = SOUND_MODE;
-    soundsLock.lock();
+    mode.store(SOUND_MODE, std::memory_order_relaxed);
+    // decode without holding the lock so the audio callback is never
+    // blocked; the sound is fully decoded before its slot is published, so
+    // the callback never sees a partially-initialized sound
+    Sound *s = new Sound(am, path, concert_a, 1, sampleRate.load(std::memory_order_relaxed));
+    if (s->nSamples == 0) {
+        delete s;
+        return;
+    }
+    std::lock_guard<std::mutex> lock(soundsLock);
     for (int i = 0; i < MAX_SOUNDS; ++i) {
-        if (sounds[i] == nullptr) {
-            Sound *s = new Sound(am, path, concert_a, 1, sampleRate);
-            if (s->nSamples == 0) delete s;
-            else sounds[i] = s;
-            break;
+        if (sounds[i].load(std::memory_order_relaxed) == nullptr) {
+            sounds[i].store(s, std::memory_order_release);
+            return;
         }
     }
-    soundsLock.unlock();
+    delete s;
 }
 
 oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, void *data, int32_t frames) {
@@ -153,25 +170,43 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
 
     float *outBuf = is16bit ? buf16.get() : static_cast<float*>(data);
     int channels = stream->getChannelCount();
+    int curMode = mode.load(std::memory_order_relaxed);
 
-    if (mode == TONE_MODE) {
-        // count tones and delete stopped ones
+    // clean up stopped sounds and tones, and anything left over from the
+    // other mode; deletions only ever happen here (under the lock) or in
+    // deinit (when the callback is no longer running)
+    {
+        std::lock_guard<std::mutex> lock(tonesLock);
+        for (int i = 0; i < MAX_TONES; ++i) {
+            Tone *tmp = tones[i].load(std::memory_order_relaxed);
+            if (tmp != nullptr && (tmp->stopped.load(std::memory_order_relaxed) || curMode != TONE_MODE)) {
+                tones[i].store(nullptr, std::memory_order_relaxed);
+                delete tmp;
+            }
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(soundsLock);
+        for (int i = 0; i < MAX_SOUNDS; ++i) {
+            Sound *tmp = sounds[i].load(std::memory_order_relaxed);
+            if (tmp != nullptr && (tmp->stopped.load(std::memory_order_relaxed) || curMode != SOUND_MODE)) {
+                sounds[i].store(nullptr, std::memory_order_relaxed);
+                delete tmp;
+            }
+        }
+    }
+
+    if (curMode == TONE_MODE) {
         int nTones = 0;
         for (int i = 0; i < MAX_TONES; ++i) {
-            Tone *tmp = tones[i];
-            if (tmp != nullptr) {
-                if (tmp->stopped) {
-                    tones[i] = nullptr;
-                    delete tmp;
-                } else ++nTones;
-            }
+            if (tones[i].load(std::memory_order_acquire) != nullptr) ++nTones;
         }
 
         for (int i = 0; i < frames; ++i) {
             float thing = 0;
             if (nTones) {
                 for (int j = 0; j < MAX_TONES; ++j) {
-                    Tone *tmp = tones[j];
+                    Tone *tmp = tones[j].load(std::memory_order_acquire);
                     if (tmp != nullptr) thing += tmp->tick();
                 }
                 thing /= nTones;
@@ -183,24 +218,16 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
             }
             for (int ch = 0; ch < channels; ++ch) outBuf[i*channels+ch] = thing;
         }
-    } else if (mode == SOUND_MODE) {
-        for (int i = 0; i < MAX_SOUNDS; ++i) {
-            Sound *tmp = sounds[i];
-            if (tmp != nullptr && tmp->stopped) {
-                sounds[i] = nullptr;
-                delete tmp;
-            }
-        }
-
+    } else if (curMode == SOUND_MODE) {
         for (int i = 0; i < frames; ++i) {
             float thing = 0;
             for (int j = 0; j < MAX_SOUNDS; ++j) {
-                Sound *tmp = sounds[j];
-                if (tmp != nullptr) {
-                    thing += (tmp->data.get())[tmp->offset];
+                Sound *tmp = sounds[j].load(std::memory_order_acquire);
+                if (tmp != nullptr && tmp->offset < tmp->nSamples) {
+                    thing += tmp->data[tmp->offset];
                     if (++tmp->offset == tmp->nSamples) {
-                        sounds[j] = nullptr;
-                        delete tmp;
+                        // mark for deletion in the next cleanup pass
+                        tmp->stopped.store(true, std::memory_order_relaxed);
                     }
                 }
             }

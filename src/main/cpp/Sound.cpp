@@ -37,18 +37,34 @@ extern "C" {
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN,    "semitone", __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,   "semitone", __VA_ARGS__)
 
+// bundle the asset and the original avio buffer, since the avio context
+// may swap its internal buffer out from under us
+struct AssetIo {
+    AAsset *asset;
+    uint8_t *origBuf;
+};
+
 static int read(void *ptr, uint8_t *buf, int bufsize) {
-    return AAsset_read((AAsset*)ptr, buf, (size_t)bufsize);
+    return AAsset_read(static_cast<AssetIo*>(ptr)->asset, buf, (size_t)bufsize);
 }
 
 static int64_t seek(void *ptr, int64_t offset, int whence) {
     // See https://www.ffmpeg.org/doxygen/3.0/avio_8h.html#a427ff2a881637b47ee7d7f9e368be63f
-    if (whence == AVSEEK_SIZE) return AAsset_getLength((AAsset*)ptr);
-    if (AAsset_seek((AAsset*)ptr, offset, whence) == -1) {
+    AAsset *a = static_cast<AssetIo*>(ptr)->asset;
+    if (whence == AVSEEK_SIZE) return AAsset_getLength(a);
+    if (AAsset_seek(a, offset, whence) == -1) {
         return -1;
     } else {
         return 0;
     }
+}
+
+static void freeAvioContext(AVIOContext *c) {
+    AssetIo *io = static_cast<AssetIo*>(c->opaque);
+    if (c->buffer != io->origBuf) av_free(io->origBuf);
+    av_free(c->buffer);
+    avio_context_free(&c);
+    delete io;
 }
 
 // on any failure, nSamples stays 0 and the engine drops the sound
@@ -60,24 +76,24 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
         return;
     }
 
-    // obtain AVIOContext (with deleter); the internal buffer may have been
-    // swapped out by ffmpeg, so only free the original one if it's unused
+    // obtain AVIOContext reading straight from the asset (with deleter)
     uint8_t *avioBuf = reinterpret_cast<uint8_t*>(av_malloc(MP3_BLOCKSIZE));
-    std::unique_ptr<AVIOContext, void(*)(AVIOContext*)> ioc {
-        nullptr, [avioBuf](AVIOContext *c) {
-            if (c->buffer != avioBuf) av_free(avioBuf);
-            av_free(c->buffer);
-            avio_context_free(&c);
-        }
-    };
-    if (avioBuf == nullptr) {
+    AssetIo *io = nullptr;
+    if (avioBuf != nullptr) {
+        io = new (std::nothrow) AssetIo {a, avioBuf};
+        if (io == nullptr) av_free(avioBuf);
+    }
+    if (io == nullptr) {
         LOGE("out of memory reading %s", path);
         AAsset_close(a);
         return;
     }
-    AVIOContext *iocTmp = avio_alloc_context(avioBuf, MP3_BLOCKSIZE, 0, a, read, nullptr, seek);
+
+    std::unique_ptr<AVIOContext, void(*)(AVIOContext*)> ioc {nullptr, &freeAvioContext};
+    AVIOContext *iocTmp = avio_alloc_context(avioBuf, MP3_BLOCKSIZE, 0, io, read, nullptr, seek);
     if (iocTmp == nullptr) {
         av_free(avioBuf);
+        delete io;
         LOGE("could not allocate avio context for %s", path);
         AAsset_close(a);
         return;
@@ -139,7 +155,8 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
     }
 
     // initialize software resampler
-    std::unique_ptr<SwrContext, decltype(&swr_free)> swr {swr_alloc(), &swr_free};
+    struct SwrDeleter { void operator()(SwrContext *s) const { swr_free(&s); } };
+    std::unique_ptr<SwrContext, SwrDeleter> swr(swr_alloc());
     AVChannelLayout out_chlayout;
     av_channel_layout_default(&out_chlayout, channels);
     if (!swr
@@ -159,8 +176,10 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
     // grow the buffer as needed
     std::vector<float> decoded;
     decoded.reserve(AAsset_getLength(a) * 12);
-    std::unique_ptr<AVPacket, decltype(&av_packet_free)> packet {av_packet_alloc(), &av_packet_free};
-    std::unique_ptr<AVFrame, decltype(&av_frame_free)> frame {av_frame_alloc(), &av_frame_free};
+    struct AVPacketDeleter { void operator()(AVPacket *p) const { av_packet_free(&p); } };
+    struct AVFrameDeleter { void operator()(AVFrame *f) const { av_frame_free(&f); } };
+    std::unique_ptr<AVPacket, AVPacketDeleter> packet(av_packet_alloc());
+    std::unique_ptr<AVFrame, AVFrameDeleter> frame(av_frame_alloc());
     if (!packet || !frame) {
         LOGE("out of memory decoding %s", path);
         AAsset_close(a);
