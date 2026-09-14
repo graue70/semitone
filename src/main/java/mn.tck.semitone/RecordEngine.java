@@ -18,9 +18,9 @@ public class RecordEngine {
     static AudioRecord ar;
     static Thread recordThread;
 
-    static Callback cb;
+    static volatile Callback cb;
 
-    static boolean paused = true, created = false;
+    static volatile boolean paused = true, created = false;
 
     public static void create(Activity a) {
         if (created) return;
@@ -31,9 +31,20 @@ public class RecordEngine {
 
         bufsize = AudioRecord.getMinBufferSize(SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        if (bufsize <= 0) {
+            created = false;
+            return;
+        }
+
         ar = new AudioRecord(AudioSource.MIC, SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
                 bufsize);
+        if (ar.getState() != AudioRecord.STATE_INITIALIZED) {
+            ar.release();
+            ar = null;
+            created = false;
+            return;
+        }
 
         DSP.init(bufsize);
 
@@ -44,14 +55,20 @@ public class RecordEngine {
         if (!created) return;
         created = false;
         pause();
-        ar.release();
+        if (ar != null) {
+            ar.release();
+            ar = null;
+        }
     }
 
     public static void pause() {
-        if (paused || !created) return;
+        if (paused || ar == null) return;
         paused = true;
         ar.stop();
-        recordThread.interrupt();
+        // the thread notices the stopped record either through the
+        // interrupt or through a failing read and exits on its own; we
+        // don't join it here since it may be blocked in a read
+        if (recordThread != null) recordThread.interrupt();
         recordThread = null;
     }
 
@@ -66,9 +83,12 @@ public class RecordEngine {
     static class RecordThread implements Runnable {
         @Override public void run() {
             short[] buf = new short[bufsize];
+            AudioRecord localAr = ar;
             while (!Thread.interrupted()) {
-                ar.read(buf, 0, bufsize);
-                if (cb != null) cb.onRecordUpdate(buf);
+                int n = localAr == null ? -1 : localAr.read(buf, 0, bufsize);
+                if (n <= 0) break; // stopped or errored
+                Callback localCb = cb;
+                if (localCb != null) localCb.onRecordUpdate(buf);
             }
         }
     }
