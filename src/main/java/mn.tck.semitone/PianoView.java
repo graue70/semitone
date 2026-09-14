@@ -29,7 +29,7 @@ import android.view.View;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 
-import java.util.HashMap;
+import android.util.SparseIntArray;
 
 public class PianoView extends View {
 
@@ -43,7 +43,7 @@ public class PianoView extends View {
 
     protected int[][] pitches;
     protected boolean[] pressed;
-    HashMap<Integer, Integer> pointers;
+    SparseIntArray pointers;
 
     protected int concert_a;
     protected boolean sustain, labelnotes, labelc;
@@ -72,7 +72,7 @@ public class PianoView extends View {
         blackPaint.setTextAlign(Paint.Align.CENTER);
 
         pressed = new boolean[300];
-        pointers = new HashMap<Integer, Integer>();
+        pointers = new SparseIntArray();
     }
 
     public void updateParams(boolean inval) {
@@ -144,7 +144,7 @@ public class PianoView extends View {
         getParent().requestDisallowInterceptTouchEvent(true);
 
         int np = ev.getPointerCount();
-        int pid, p;
+        int pid, p, prev;
 
         switch (ev.getActionMasked()) {
 
@@ -166,8 +166,9 @@ public class PianoView extends View {
             boolean anyChange = false;
             for (int i = 0; i < np; ++i) {
                 pid = ev.getPointerId(i); p = getPitch(ev, i);
-                if (pointers.get(pid) != p) {
-                    stop(pointers.get(pid));
+                prev = pointers.get(pid, -1);
+                if (prev != p) {
+                    if (prev >= 0) stop(prev);
                     pointers.put(pid, p);
                     play(p);
                     anyChange = true;
@@ -177,12 +178,18 @@ public class PianoView extends View {
             return true;
 
         case MotionEvent.ACTION_UP:
-            stop(pointers.remove(ev.getPointerId(0)));
+            pid = ev.getPointerId(0);
+            prev = pointers.get(pid, -1);
+            if (prev >= 0) stop(prev);
+            pointers.delete(pid);
             invalidate();
             return true;
 
         case MotionEvent.ACTION_POINTER_UP:
-            stop(pointers.remove(ev.getPointerId(ev.getActionIndex())));
+            pid = ev.getPointerId(ev.getActionIndex());
+            prev = pointers.get(pid, -1);
+            if (prev >= 0) stop(prev);
+            pointers.delete(pid);
             invalidate();
             return true;
 
