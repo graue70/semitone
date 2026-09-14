@@ -36,7 +36,7 @@ import java.util.Arrays;
 
 public class TunerFragment extends SemitoneFragment implements RecordEngine.Callback {
 
-    final static int HIST_SIZE = 16;
+    static final int HIST_SIZE = 16;
 
     View view;
     TextView notename;
@@ -49,24 +49,28 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
     double[] dbuf, hist, sorted;
 
     private final ActivityResultLauncher<String> micPermissionLauncher =
-        registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
-            if (granted) {
-                notename.setText("");
-                notename.setTextSize(TypedValue.COMPLEX_UNIT_PX, notenamesize);
-                RecordEngine.create(getActivity());
-                dbuf = new double[DSP.fftlen];
-            }
-        });
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    granted -> {
+                        if (granted) {
+                            notename.setText("");
+                            notename.setTextSize(TypedValue.COMPLEX_UNIT_PX, notenamesize);
+                            RecordEngine.create(getActivity());
+                            dbuf = new double[DSP.fftlen];
+                        }
+                    });
 
     public TunerFragment() {
         RecordEngine.cb = this;
     }
 
-    @Override public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
         return inflater.inflate(R.layout.tuner, container, false);
     }
 
-    @Override public void onViewCreated(View view, Bundle state) {
+    @Override
+    public void onViewCreated(View view, Bundle state) {
         this.view = view;
 
         if (RecordEngine.created) dbuf = new double[DSP.fftlen];
@@ -76,23 +80,28 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
         notename = (TextView) view.findViewById(R.id.notename);
         centerror = (CentErrorView) view.findViewById(R.id.centerror);
 
-        notename.getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override public void onGlobalLayout() {
-                notename.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                fitNoteName();
-                if (!RecordEngine.created) {
-                    notename.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-                    notename.setText(getResources().getString(R.string.micperm));
-                    notename.setOnClickListener(new View.OnClickListener() {
-                        @Override public void onClick(View v) {
-                            if (RecordEngine.created) return;
-                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
-                        }
-                    });
-                }
-            }
-        });
+        notename.getViewTreeObserver()
+                .addOnGlobalLayoutListener(
+                        new ViewTreeObserver.OnGlobalLayoutListener() {
+                            @Override
+                            public void onGlobalLayout() {
+                                notename.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                                fitNoteName();
+                                if (!RecordEngine.created) {
+                                    notename.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                                    notename.setText(getResources().getString(R.string.micperm));
+                                    notename.setOnClickListener(
+                                            new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View v) {
+                                                    if (RecordEngine.created) return;
+                                                    micPermissionLauncher.launch(
+                                                            Manifest.permission.RECORD_AUDIO);
+                                                }
+                                            });
+                                }
+                            }
+                        });
 
         onSettingsChanged();
     }
@@ -100,11 +109,11 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
     private void fitNoteName() {
         if (notename.getWidth() == 0) return;
         notenamesize = Util.maxTextSize(Util.widestName(names) + "000", notename.getWidth());
-        if (RecordEngine.created)
-            notename.setTextSize(TypedValue.COMPLEX_UNIT_PX, notenamesize);
+        if (RecordEngine.created) notename.setTextSize(TypedValue.COMPLEX_UNIT_PX, notenamesize);
     }
 
-    @Override public void onSettingsChanged() {
+    @Override
+    public void onSettingsChanged() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getContext());
         try {
             concert_a = Integer.parseInt(sp.getString("concert_a", "440"));
@@ -116,7 +125,8 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
         fitNoteName();
     }
 
-    @Override public void onRecordUpdate(short[] buf) {
+    @Override
+    public void onRecordUpdate(short[] buf) {
         // this can happen after the fragment has been instantiated but
         // before onViewCreated has had a chance to run
         if (dbuf == null || hist == null) return;
@@ -129,30 +139,32 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
         // constant note)
         double freq = DSP.freq(dbuf, RecordEngine.SAMPLE_RATE);
         if (freq <= 0) return;
-        double semitone = 12 * Math.log(freq/concert_a)/Math.log(2);
+        double semitone = 12 * Math.log(freq / concert_a) / Math.log(2);
 
         // insert into moving average history
-        for (int i = 1; i < HIST_SIZE; ++i) sorted[i-1] = hist[i-1] = hist[i];
-        sorted[HIST_SIZE-1] = hist[HIST_SIZE-1] = semitone;
+        for (int i = 1; i < HIST_SIZE; ++i) sorted[i - 1] = hist[i - 1] = hist[i];
+        sorted[HIST_SIZE - 1] = hist[HIST_SIZE - 1] = semitone;
 
         // find median
         Arrays.sort(sorted);
-        final double median = (sorted[HIST_SIZE/2-1]+sorted[HIST_SIZE/2])/2;
+        final double median = (sorted[HIST_SIZE / 2 - 1] + sorted[HIST_SIZE / 2]) / 2;
 
-        final int rounded = (int)Math.round(median);
+        final int rounded = (int) Math.round(median);
         final boolean shift = rounded < 0 && rounded % 12 != 0;
-        final int note   = rounded % 12 + (shift ? 12 : 0);
-        final int octave = rounded / 12 - (shift ? 1  : 0);
+        final int note = rounded % 12 + (shift ? 12 : 0);
+        final int octave = rounded / 12 - (shift ? 1 : 0);
 
         if (getActivity() != null) {
-            getActivity().runOnUiThread(new Runnable() {
-                @Override public void run() {
-                    notename.setText(names[note] +
-                        (octave + 5 - (note <= 2 ? 1 : 0)));
-                    centerror.setError(median - rounded);
-                }
-            });
+            getActivity()
+                    .runOnUiThread(
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    notename.setText(
+                                            names[note] + (octave + 5 - (note <= 2 ? 1 : 0)));
+                                    centerror.setError(median - rounded);
+                                }
+                            });
         }
     }
-
 }

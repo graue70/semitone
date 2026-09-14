@@ -49,13 +49,17 @@ public class MainActivity extends FragmentActivity {
     boolean keeptick;
 
     private final ActivityResultLauncher<Intent> settingsLauncher =
-        registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            for (SemitoneFragment f : fragments) f.onSettingsChanged();
-            keeptick = PreferenceManager.getDefaultSharedPreferences(this)
-                .getBoolean("keeptick", false);
-        });
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        for (SemitoneFragment f : fragments) f.onSettingsChanged();
+                        keeptick =
+                                PreferenceManager.getDefaultSharedPreferences(this)
+                                        .getBoolean("keeptick", false);
+                    });
 
-    @Override protected void onCreate(Bundle state) {
+    @Override
+    protected void onCreate(Bundle state) {
         super.onCreate(state);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
@@ -74,58 +78,89 @@ public class MainActivity extends FragmentActivity {
         SemitoneAdapter adapter = new SemitoneAdapter(this);
 
         pager.setAdapter(adapter);
-        new TabLayoutMediator(tabs, pager, (tab, pos) -> tab.setText(
-                getResources().getString(pos == 0 ? R.string.tuner_title
-                        : pos == 1 ? R.string.metronome_title : R.string.piano_title))).attach();
+        new TabLayoutMediator(
+                        tabs,
+                        pager,
+                        (tab, pos) ->
+                                tab.setText(
+                                        getResources()
+                                                .getString(
+                                                        pos == 0
+                                                                ? R.string.tuner_title
+                                                                : pos == 1
+                                                                        ? R.string.metronome_title
+                                                                        : R.string.piano_title)))
+                .attach();
         pager.setCurrentItem(sp.getInt("lastpage", 0), false);
 
-        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override public void onPageSelected(int pos) {
-                if (pos == 0) RecordEngine.resume();
-                else RecordEngine.pause();
-                PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
-                    .edit().putInt("lastpage", pos).apply();
-            }
-        });
+        pager.registerOnPageChangeCallback(
+                new ViewPager2.OnPageChangeCallback() {
+                    @Override
+                    public void onPageSelected(int pos) {
+                        if (pos == 0) RecordEngine.resume();
+                        else RecordEngine.pause();
+                        PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
+                                .edit()
+                                .putInt("lastpage", pos)
+                                .apply();
+                    }
+                });
 
         settings = (ImageView) findViewById(R.id.settings);
 
-        settings.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                settingsLauncher.launch(new Intent(MainActivity.this, SettingsActivity.class));
-            }
-        });
+        settings.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        settingsLauncher.launch(
+                                new Intent(MainActivity.this, SettingsActivity.class));
+                    }
+                });
     }
 
-    @Override protected void onDestroy() {
+    @Override
+    protected void onDestroy() {
         super.onDestroy();
         PianoEngine.destroy();
         RecordEngine.destroy();
     }
 
-    @Override protected void onPause() {
+    @Override
+    protected void onPause() {
         super.onPause();
         if (!keeptick) PianoEngine.pause();
         RecordEngine.pause();
     }
 
-    @Override protected void onResume() {
+    @Override
+    protected void onResume() {
         super.onResume();
         if (PianoEngine.paused) PianoEngine.resume();
         RecordEngine.resume();
     }
 
     private static class SemitoneAdapter extends FragmentStateAdapter {
-        public SemitoneAdapter(FragmentActivity fa) { super(fa); }
-        @Override public int getItemCount() { return 3; }
-        @Override public Fragment createFragment(int pos) {
+        public SemitoneAdapter(FragmentActivity fa) {
+            super(fa);
+        }
+
+        @Override
+        public int getItemCount() {
+            return 3;
+        }
+
+        @Override
+        public Fragment createFragment(int pos) {
             switch (pos) {
-            case 0: return new TunerFragment();
-            case 1: return new MetronomeFragment();
-            case 2: return new PianoFragment();
-            default: return null;
+                case 0:
+                    return new TunerFragment();
+                case 1:
+                    return new MetronomeFragment();
+                case 2:
+                    return new PianoFragment();
+                default:
+                    return null;
             }
         }
     }
-
 }

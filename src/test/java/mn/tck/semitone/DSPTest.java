@@ -29,7 +29,8 @@ public class DSPTest {
         for (int i = 0; i < buf.length; ++i) buf[i] = Math.sin(2 * Math.PI * freq * i / sr);
     }
 
-    @Test public void initChoosesLargestPowerOfTwoNotOverBufsize() {
+    @Test
+    public void initChoosesLargestPowerOfTwoNotOverBufsize() {
         DSP.init(2048);
         assertEquals(2048, DSP.fftlen);
         assertEquals(11, DSP.fftpow);
@@ -41,19 +42,21 @@ public class DSPTest {
         assertEquals(11, DSP.fftpow);
     }
 
-    @Test public void freqDetectsPureSines() {
+    @Test
+    public void freqDetectsPureSines() {
         DSP.init(4096);
         int sr = 44100;
         for (double f : new double[] {220, 330, 440, 880}) {
             double[] buf = new double[DSP.fftlen];
             fillSine(buf, f, sr);
             double detected = DSP.freq(buf, sr);
-            assertTrue("detected " + detected + " instead of " + f,
-                    Math.abs(detected - f) < 0.01 * f);
+            assertTrue(
+                    "detected " + detected + " instead of " + f, Math.abs(detected - f) < 0.01 * f);
         }
     }
 
-    @Test public void freqDetectsNoisySine() {
+    @Test
+    public void freqDetectsNoisySine() {
         DSP.init(4096);
         double[] buf = new double[DSP.fftlen];
         java.util.Random rng = new java.util.Random(42);
@@ -64,7 +67,8 @@ public class DSPTest {
         assertTrue("detected " + detected, Math.abs(detected - 440) < 0.02 * 440);
     }
 
-    @Test public void freqRejectsSilence() {
+    @Test
+    public void freqRejectsSilence() {
         DSP.init(4096);
         double[] buf = new double[DSP.fftlen];
         assertTrue(DSP.freq(buf, 44100) < 0);
