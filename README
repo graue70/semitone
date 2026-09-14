@@ -55,6 +55,18 @@ prereleases enabled.
 
 -------
 
+The piano samples are cuts of the University of Iowa Musical Instrument Samples
+recordings; they can be regenerated with
+
+ $ tools/make_piano_sample.py <pitch> [--transpose N]
+
+which cuts the source recording before the first noise burst in the decaying
+tail (some recordings pick up a snare-like noise there, so those samples are
+built from a clean neighbouring recording transposed into place) and verifies
+the result (no burst, silent tail, correct pitch). Requires ffmpeg on PATH.
+
+-------
+
 This software uses:
 
  * libraries from the FFmpeg project, under the GPLv2 or later
