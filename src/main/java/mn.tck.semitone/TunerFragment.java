@@ -113,21 +113,25 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
         } catch (NumberFormatException e) {
             concert_a = 440;
         }
+        if (concert_a <= 0) concert_a = 440;
         names = Util.getNotenames(Util.naming(sp));
         fitNoteName();
     }
 
     @Override public void onRecordUpdate(short[] buf) {
-        // this can happen after the fragment has been instantiated but before
-        // onViewCreated has had a chance to run
-        if (dbuf == null) return;
+        // this can happen after the fragment has been instantiated but
+        // before onViewCreated has had a chance to run
+        if (dbuf == null || hist == null) return;
 
         // copy data to fft buffer - scale down to avoid huge numbers
         for (int i = 0; i < DSP.fftlen; ++i) dbuf[i] = buf[i] / 1024.0;
 
-        // calculate frequency and note
-        double freq = DSP.freq(dbuf, RecordEngine.SAMPLE_RATE),
-                semitone = 12 * Math.log(freq/concert_a)/Math.log(2);
+        // calculate frequency and note; skip the update entirely if the
+        // signal is too noisy to detect a pitch (instead of showing a bogus
+        // constant note)
+        double freq = DSP.freq(dbuf, RecordEngine.SAMPLE_RATE);
+        if (freq <= 0) return;
+        double semitone = 12 * Math.log(freq/concert_a)/Math.log(2);
 
         // insert into moving average history
         for (int i = 1; i < HIST_SIZE; ++i) sorted[i-1] = hist[i-1] = hist[i];
