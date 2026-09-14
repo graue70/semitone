@@ -37,6 +37,7 @@ class PianoEngine : oboe::AudioStreamCallback {
 public:
     explicit PianoEngine(AAssetManager &am);
     ~PianoEngine();
+
     void play(int pitch, int concert_a);
     void stop(int pitch);
     void pause();
@@ -56,6 +57,7 @@ private:
     bool is16bit;
     std::unique_ptr<float[]> buf16;
     int sampleRate = oboe::DefaultStreamValues::SampleRate;
+    int logCounter = 0;
 
     Tone *tones[MAX_TONES] = {nullptr};
     Sound *sounds[MAX_SOUNDS] = {nullptr};
