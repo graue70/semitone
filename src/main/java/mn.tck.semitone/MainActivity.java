@@ -39,23 +39,22 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
+import java.util.ArrayList;
+
 public class MainActivity extends FragmentActivity {
+
+    // live fragments register themselves here (see SemitoneFragment) so
+    // settings changes can be pushed to whichever exist
+    static final ArrayList<SemitoneFragment> fragments = new ArrayList<>();
 
     // ImageView fullscreen;
     ImageView settings;
-
-    static TunerFragment tf;
-    static MetronomeFragment mf;
-    static PianoFragment pf;
-    static String tt, mt, pt;
 
     boolean keeptick;
 
     private final ActivityResultLauncher<Intent> settingsLauncher =
         registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            if (tf != null) tf.onSettingsChanged();
-            if (mf != null) mf.onSettingsChanged();
-            if (pf != null) pf.onSettingsChanged();
+            for (SemitoneFragment f : fragments) f.onSettingsChanged();
             keeptick = PreferenceManager.getDefaultSharedPreferences(this)
                 .getBoolean("keeptick", false);
         });
@@ -80,17 +79,14 @@ public class MainActivity extends FragmentActivity {
 
         keeptick = sp.getBoolean("keeptick", false);
 
-        tt = getResources().getString(R.string.tuner_title);
-        mt = getResources().getString(R.string.metronome_title);
-        pt = getResources().getString(R.string.piano_title);
-
         ViewPager2 pager = (ViewPager2) findViewById(R.id.pager);
         TabLayout tabs = (TabLayout) findViewById(R.id.tabs);
         SemitoneAdapter adapter = new SemitoneAdapter(this);
 
         pager.setAdapter(adapter);
-        new TabLayoutMediator(tabs, pager, (tab, pos) ->
-                tab.setText(pos == 0 ? tt : pos == 1 ? mt : pt)).attach();
+        new TabLayoutMediator(tabs, pager, (tab, pos) -> tab.setText(
+                getResources().getString(pos == 0 ? R.string.tuner_title
+                        : pos == 1 ? R.string.metronome_title : R.string.piano_title))).attach();
         pager.setCurrentItem(sp.getInt("lastpage", 0), false);
 
         pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {

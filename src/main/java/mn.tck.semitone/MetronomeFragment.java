@@ -68,10 +68,6 @@ public class MetronomeFragment extends SemitoneFragment {
     Tick tick;
     int strong, weak;
 
-    public MetronomeFragment() {
-        MainActivity.mf = this;
-    }
-
     @Override public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
         return inflater.inflate(R.layout.metronome, container, false);
     }
