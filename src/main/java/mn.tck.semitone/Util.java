@@ -18,11 +18,43 @@
 
 package mn.tck.semitone;
 
+import android.content.SharedPreferences;
 import android.text.TextPaint;
 
 public class Util {
 
-    public final static String[] notenames = {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"};
+    public final static String[][] notenamesAll = {
+        {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"},
+        {"La", "La#", "Si", "Do", "Do#", "Ré", "Ré#", "Mi", "Fa", "Fa#", "Sol", "Sol#"},
+        {"A", "Ais", "H", "C", "Cis", "D", "Dis", "E", "F", "Fis", "G", "Gis"},
+    };
+    public final static String[] notenames = notenamesAll[0];
+
+    public final static int[] WHITE_PCS = {0, 2, 3, 5, 7, 8, 10};
+
+    public static String[] getNotenames(int naming) {
+        return notenamesAll[Math.max(0, Math.min(naming, notenamesAll.length - 1))];
+    }
+
+    public static int naming(SharedPreferences sp) {
+        try {
+            return Integer.parseInt(sp.getString("notenames", "0"));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    public static String widestName(String[] names) {
+        String widest = "";
+        for (String name : names) if (name.length() > widest.length()) widest = name;
+        return widest;
+    }
+
+    public static String widestWhiteName(String[] names) {
+        String widest = "";
+        for (int pc : WHITE_PCS) if (names[pc].length() > widest.length()) widest = names[pc];
+        return widest;
+    }
 
     public static int maxTextSize(String text, int maxWidth) {
         TextPaint paint = new TextPaint();
