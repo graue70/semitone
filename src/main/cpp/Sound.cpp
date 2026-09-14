@@ -19,6 +19,7 @@
 #include "Sound.h"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 #include <oboe/Oboe.h>
@@ -67,13 +68,16 @@ static void freeAvioContext(AVIOContext *c) {
     delete io;
 }
 
-// on any failure, nSamples stays 0 and the engine drops the sound
-Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate)
-        : nSamples(0), offset(0), stopped(false) {
-    AAsset *a = AAssetManager_open(&am, path, AASSET_MODE_UNKNOWN);
+Sound::Sound(std::shared_ptr<const std::vector<float>> pcm)
+        : data(std::move(pcm)), offset(0), stopped(false) {}
+
+// on any failure, an empty vector is returned
+std::shared_ptr<const std::vector<float>> decodeSound(
+        AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate) {
+    auto decoded = std::make_shared<std::vector<float>>();    AAsset *a = AAssetManager_open(&am, path, AASSET_MODE_UNKNOWN);
     if (a == nullptr) {
         LOGW("could not open asset %s", path);
-        return;
+        return decoded;
     }
 
     // obtain AVIOContext reading straight from the asset (with deleter)
@@ -86,7 +90,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
     if (io == nullptr) {
         LOGE("out of memory reading %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
 
     std::unique_ptr<AVIOContext, void(*)(AVIOContext*)> ioc {nullptr, &freeAvioContext};
@@ -96,7 +100,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
         delete io;
         LOGE("could not allocate avio context for %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
     ioc.reset(iocTmp);
 
@@ -108,7 +112,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
     if (fcTmp == nullptr) {
         LOGE("out of memory opening %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
     fcTmp->pb = ioc.get();
     fc.reset(fcTmp);
@@ -119,12 +123,12 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
         fc.release();
         LOGE("could not open %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
     if (avformat_find_stream_info(fc.get(), nullptr) < 0) {
         LOGE("could not find stream info for %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
 
     // find stream and codec
@@ -132,14 +136,14 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
     if (streamIdx < 0) {
         LOGE("no audio stream in %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
     AVStream *stream = fc->streams[streamIdx];
     const AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
     if (codec == nullptr) {
         LOGE("no decoder for %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
 
     // obtain AVCodecContext (with deleter)
@@ -151,7 +155,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
             || avcodec_open2(cc.get(), codec, nullptr) < 0) {
         LOGE("could not open decoder for %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
 
     // initialize software resampler
@@ -169,13 +173,12 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
             || swr_init(swr.get()) < 0) {
         LOGE("could not initialize resampler for %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
 
     // do the actual decoding; the decoded size isn't known up front, so
     // grow the buffer as needed
-    std::vector<float> decoded;
-    decoded.reserve(AAsset_getLength(a) * 12);
+    decoded->reserve(AAsset_getLength(a) * 12);
     struct AVPacketDeleter { void operator()(AVPacket *p) const { av_packet_free(&p); } };
     struct AVFrameDeleter { void operator()(AVFrame *f) const { av_frame_free(&f); } };
     std::unique_ptr<AVPacket, AVPacketDeleter> packet(av_packet_alloc());
@@ -183,7 +186,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
     if (!packet || !frame) {
         LOGE("out of memory decoding %s", path);
         AAsset_close(a);
-        return;
+        return decoded;
     }
 
     while (av_read_frame(fc.get(), packet.get()) == 0) {
@@ -209,7 +212,7 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
             int frame_count = swr_convert(swr.get(), &swrbuf, samples,
                     (const uint8_t **) frame->data, frame->nb_samples);
             if (frame_count > 0) {
-                decoded.insert(decoded.end(), (float*)swrbuf,
+                decoded->insert(decoded->end(), (float*)swrbuf,
                         (float*)swrbuf + frame_count * channels);
             }
             av_freep(&swrbuf);
@@ -217,12 +220,9 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
         av_frame_unref(frame.get());
     }
 
-    nSamples = decoded.size();
-    if (nSamples > 0) {
-        data = std::make_unique<float[]>(nSamples);
-        std::copy(decoded.begin(), decoded.end(), data.get());
-    } else {
+    if (decoded->empty()) {
         LOGW("no samples decoded from %s", path);
     }
     AAsset_close(a);
+    return decoded;
 }

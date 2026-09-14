@@ -21,14 +21,25 @@
 
 #include <atomic>
 #include <memory>
+#include <string>
+#include <vector>
+
 #include <android/asset_manager.h>
 
+// a single playback instance: a shared reference to the decoded pcm data
+// plus a play head; the data may be shared with other sounds
 class Sound {
 public:
-    Sound(AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate);
-    std::unique_ptr<float[]> data;
-    size_t nSamples, offset;
+    explicit Sound(std::shared_ptr<const std::vector<float>> pcm);
+
+    std::shared_ptr<const std::vector<float>> data;
+    size_t offset;
     std::atomic<bool> stopped;
 };
+
+// fully decode an asset into float pcm at the given sample rate; returns
+// an empty vector on failure
+std::shared_ptr<const std::vector<float>> decodeSound(
+        AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate);
 
 #endif
