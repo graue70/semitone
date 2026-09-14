@@ -59,8 +59,6 @@ public class TunerFragment extends SemitoneFragment implements RecordEngine.Call
         });
 
     public TunerFragment() {
-        super();
-        MainActivity.tf = this;
         RecordEngine.cb = this;
     }
 
