@@ -112,9 +112,10 @@ jobs:
               --prerelease \
               --target "$GITHUB_SHA" \
               --title "test build $VERSION (${{ github.ref_name }})" \
-              --notes "branch: ${{ github.ref_name }}, commit: ${{ github.sha }}"
+              --notes "branch: ${{ github.ref_name }}, commit: ${{ github.sha }}" \
+              --generate-notes
           else
             gh release create "$GITHUB_REF_NAME" "semitone-$VERSION.apk" \
               --title "$GITHUB_REF_NAME" \
-              --notes "commit: ${{ github.sha }}"
+              --generate-notes
           fi
