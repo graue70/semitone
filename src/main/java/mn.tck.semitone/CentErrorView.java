@@ -25,6 +25,8 @@ import android.graphics.Paint;
 import android.widget.TextView;
 import android.util.AttributeSet;
 
+import java.util.Locale;
+
 public class CentErrorView extends TextView {
 
     private Paint centerPaint, linePaint;
@@ -49,7 +51,7 @@ public class CentErrorView extends TextView {
 
     public void setError(double error) {
         this.error = error;
-        setText(String.format("%+.2f %s", error*100, cents));
+        setText(String.format(Locale.US, "%+.2f %s", error*100, cents));
     }
 
     @Override protected void onDraw(Canvas canvas) {

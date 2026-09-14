@@ -23,9 +23,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Window;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.ImageView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -47,7 +44,6 @@ public class MainActivity extends FragmentActivity {
     // settings changes can be pushed to whichever exist
     static final ArrayList<SemitoneFragment> fragments = new ArrayList<>();
 
-    // ImageView fullscreen;
     ImageView settings;
 
     boolean keeptick;
@@ -67,16 +63,10 @@ public class MainActivity extends FragmentActivity {
         PianoEngine.create(this);
         RecordEngine.create(this);
 
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences.Editor e = sp.edit();
-        if (!sp.contains("concert_a")) e.putString("concert_a", "440");
-        if (!sp.contains("keeptick")) e.putBoolean("keeptick", false);
-        if (!sp.contains("sustain")) e.putBoolean("sustain", false);
-        if (!sp.contains("labelnotes")) e.putBoolean("labelnotes", true);
-        if (!sp.contains("labelc")) e.putBoolean("labelc", true);
-        if (!sp.contains("notenames")) e.putString("notenames", "0");
-        e.apply();
+        // fill in defaults from settings.xml for anything not set yet
+        PreferenceManager.setDefaultValues(this, R.xml.settings, false);
 
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         keeptick = sp.getBoolean("keeptick", false);
 
         ViewPager2 pager = (ViewPager2) findViewById(R.id.pager);
@@ -93,12 +83,11 @@ public class MainActivity extends FragmentActivity {
             @Override public void onPageSelected(int pos) {
                 if (pos == 0) RecordEngine.resume();
                 else RecordEngine.pause();
-                e.putInt("lastpage", pos);
-                e.apply();
+                PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
+                    .edit().putInt("lastpage", pos).apply();
             }
         });
 
-        // fullscreen = (ImageView) findViewById(R.id.fullscreen);
         settings = (ImageView) findViewById(R.id.settings);
 
         settings.setOnClickListener(new View.OnClickListener() {
