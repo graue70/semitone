@@ -35,17 +35,17 @@ extern "C" {
 #define MP3_BLOCKSIZE 1152
 
 #include <android/log.h>
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,    "semitone", __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,   "semitone", __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, "semitone", __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "semitone", __VA_ARGS__)
 
 static int read(void *ptr, uint8_t *buf, int bufsize) {
-    return AAsset_read((AAsset*)ptr, buf, (size_t)bufsize);
+    return AAsset_read((AAsset *)ptr, buf, (size_t)bufsize);
 }
 
 static int64_t seek(void *ptr, int64_t offset, int whence) {
     // See https://www.ffmpeg.org/doxygen/3.0/avio_8h.html#a427ff2a881637b47ee7d7f9e368be63f
-    if (whence == AVSEEK_SIZE) return AAsset_getLength((AAsset*)ptr);
-    if (AAsset_seek((AAsset*)ptr, offset, whence) == -1) {
+    if (whence == AVSEEK_SIZE) return AAsset_getLength((AAsset *)ptr);
+    if (AAsset_seek((AAsset *)ptr, offset, whence) == -1) {
         return -1;
     } else {
         return 0;
@@ -63,26 +63,27 @@ static void freeAvioContext(AVIOContext *c) {
 }
 
 Sound::Sound(std::shared_ptr<const std::vector<float>> pcm)
-        : data(std::move(pcm)), offset(0), stopped(false) {}
+    : data(std::move(pcm)), offset(0), stopped(false) {}
 
 // on any failure, an empty vector is returned
-std::shared_ptr<const std::vector<float>> decodeSound(
-        AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate) {
-    auto decoded = std::make_shared<std::vector<float>>();    AAsset *a = AAssetManager_open(&am, path, AASSET_MODE_UNKNOWN);
+std::shared_ptr<const std::vector<float>> decodeSound(AAssetManager &am, const char *path,
+                                                      int concert_a, int channels, int sampleRate) {
+    auto decoded = std::make_shared<std::vector<float>>();
+    AAsset *a = AAssetManager_open(&am, path, AASSET_MODE_UNKNOWN);
     if (a == nullptr) {
         LOGW("could not open asset %s", path);
         return decoded;
     }
 
     // obtain AVIOContext reading straight from the asset (with deleter)
-    uint8_t *avioBuf = reinterpret_cast<uint8_t*>(av_malloc(MP3_BLOCKSIZE));
+    uint8_t *avioBuf = reinterpret_cast<uint8_t *>(av_malloc(MP3_BLOCKSIZE));
     if (avioBuf == nullptr) {
         LOGE("out of memory reading %s", path);
         AAsset_close(a);
         return decoded;
     }
 
-    std::unique_ptr<AVIOContext, void(*)(AVIOContext*)> ioc {nullptr, &freeAvioContext};
+    std::unique_ptr<AVIOContext, void (*)(AVIOContext *)> ioc{nullptr, &freeAvioContext};
     AVIOContext *iocTmp = avio_alloc_context(avioBuf, MP3_BLOCKSIZE, 0, a, read, nullptr, seek);
     if (iocTmp == nullptr) {
         av_free(avioBuf);
@@ -93,9 +94,8 @@ std::shared_ptr<const std::vector<float>> decodeSound(
     ioc.reset(iocTmp);
 
     // obtain AVFormatContext (with deleter)
-    std::unique_ptr<AVFormatContext, decltype(&avformat_free_context)> fc {
-        nullptr, &avformat_free_context
-    };
+    std::unique_ptr<AVFormatContext, decltype(&avformat_free_context)> fc{nullptr,
+                                                                          &avformat_free_context};
     AVFormatContext *fcTmp = avformat_alloc_context();
     if (fcTmp == nullptr) {
         LOGE("out of memory opening %s", path);
@@ -135,30 +135,32 @@ std::shared_ptr<const std::vector<float>> decodeSound(
     }
 
     // obtain AVCodecContext (with deleter)
-    std::unique_ptr<AVCodecContext, void(*)(AVCodecContext*)> cc {
-        nullptr, [](AVCodecContext *c) { avcodec_free_context(&c); }
-    };
+    std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> cc{
+        nullptr, [](AVCodecContext *c) { avcodec_free_context(&c); }};
     cc.reset(avcodec_alloc_context3(codec));
-    if (!cc || avcodec_parameters_to_context(cc.get(), stream->codecpar) < 0
-            || avcodec_open2(cc.get(), codec, nullptr) < 0) {
+    if (!cc || avcodec_parameters_to_context(cc.get(), stream->codecpar) < 0 ||
+        avcodec_open2(cc.get(), codec, nullptr) < 0) {
         LOGE("could not open decoder for %s", path);
         AAsset_close(a);
         return decoded;
     }
 
     // initialize software resampler
-    struct SwrDeleter { void operator()(SwrContext *s) const { swr_free(&s); } };
+    struct SwrDeleter {
+        void operator()(SwrContext *s) const { swr_free(&s); }
+    };
     std::unique_ptr<SwrContext, SwrDeleter> swr(swr_alloc());
     AVChannelLayout out_chlayout;
     av_channel_layout_default(&out_chlayout, channels);
-    if (!swr
-            || av_opt_set_chlayout(swr.get(), "in_chlayout",  &stream->codecpar->ch_layout,                     0) < 0
-            || av_opt_set_int(swr.get(), "in_sample_rate",    (concert_a/440.0)*stream->codecpar->sample_rate, 0) < 0
-            || av_opt_set_int(swr.get(), "in_sample_fmt",     stream->codecpar->format,                        0) < 0
-            || av_opt_set_chlayout(swr.get(), "out_chlayout", &out_chlayout,                                   0) < 0
-            || av_opt_set_int(swr.get(), "out_sample_rate",   sampleRate,                                      0) < 0
-            || av_opt_set_sample_fmt(swr.get(), "out_sample_fmt", AV_SAMPLE_FMT_FLT,                           0) < 0
-            || swr_init(swr.get()) < 0) {
+    if (!swr ||
+        av_opt_set_chlayout(swr.get(), "in_chlayout", &stream->codecpar->ch_layout, 0) < 0 ||
+        av_opt_set_int(swr.get(), "in_sample_rate",
+                       (concert_a / 440.0) * stream->codecpar->sample_rate, 0) < 0 ||
+        av_opt_set_int(swr.get(), "in_sample_fmt", stream->codecpar->format, 0) < 0 ||
+        av_opt_set_chlayout(swr.get(), "out_chlayout", &out_chlayout, 0) < 0 ||
+        av_opt_set_int(swr.get(), "out_sample_rate", sampleRate, 0) < 0 ||
+        av_opt_set_sample_fmt(swr.get(), "out_sample_fmt", AV_SAMPLE_FMT_FLT, 0) < 0 ||
+        swr_init(swr.get()) < 0) {
         LOGE("could not initialize resampler for %s", path);
         AAsset_close(a);
         return decoded;
@@ -167,8 +169,12 @@ std::shared_ptr<const std::vector<float>> decodeSound(
     // do the actual decoding; the decoded size isn't known up front, so
     // grow the buffer as needed
     decoded->reserve(AAsset_getLength(a) * 12);
-    struct AVPacketDeleter { void operator()(AVPacket *p) const { av_packet_free(&p); } };
-    struct AVFrameDeleter { void operator()(AVFrame *f) const { av_frame_free(&f); } };
+    struct AVPacketDeleter {
+        void operator()(AVPacket *p) const { av_packet_free(&p); }
+    };
+    struct AVFrameDeleter {
+        void operator()(AVFrame *f) const { av_frame_free(&f); }
+    };
     std::unique_ptr<AVPacket, AVPacketDeleter> packet(av_packet_alloc());
     std::unique_ptr<AVFrame, AVFrameDeleter> frame(av_frame_alloc());
     if (!packet || !frame) {
@@ -189,19 +195,18 @@ std::shared_ptr<const std::vector<float>> decodeSound(
             if (frame->sample_rate <= 0) continue;
 
             // resample
-            int32_t samples = (int32_t) av_rescale_rnd(
-                    swr_get_delay(swr.get(), frame->sample_rate) + frame->nb_samples,
-                    sampleRate,
-                    frame->sample_rate,
-                    AV_ROUND_UP);
+            int32_t samples = (int32_t)av_rescale_rnd(
+                swr_get_delay(swr.get(), frame->sample_rate) + frame->nb_samples, sampleRate,
+                frame->sample_rate, AV_ROUND_UP);
             if (samples <= 0) continue;
             uint8_t *swrbuf;
-            if (av_samples_alloc(&swrbuf, nullptr, channels, samples, AV_SAMPLE_FMT_FLT, 0) < 0) break;
+            if (av_samples_alloc(&swrbuf, nullptr, channels, samples, AV_SAMPLE_FMT_FLT, 0) < 0)
+                break;
             int frame_count = swr_convert(swr.get(), &swrbuf, samples,
-                    (const uint8_t **) frame->data, frame->nb_samples);
+                                          (const uint8_t **)frame->data, frame->nb_samples);
             if (frame_count > 0) {
-                decoded->insert(decoded->end(), (float*)swrbuf,
-                        (float*)swrbuf + frame_count * channels);
+                decoded->insert(decoded->end(), (float *)swrbuf,
+                                (float *)swrbuf + frame_count * channels);
             }
             av_freep(&swrbuf);
         }

@@ -1,0 +1,10 @@
+# Formatting for the native sources in src/main/cpp; run
+#   clang-format -i src/main/cpp/*.cpp src/main/cpp/*.h
+# to apply. The config tracks the existing style of the codebase.
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 100
+PointerAlignment: Right
+DerivePointerAlignment: false
+AllowShortFunctionsOnASingleLine: All
+SortIncludes: false

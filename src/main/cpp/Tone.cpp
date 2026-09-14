@@ -22,11 +22,11 @@
 #include <math.h>
 
 Tone::Tone(int pitch, int concert_a, int sampleRate) : pitch(pitch), stopped(false), phase(0) {
-    phaseIncrement = 2*M_PI * (concert_a*powf(2, (pitch-69)/12.0f)) / sampleRate;
+    phaseIncrement = 2 * M_PI * (concert_a * powf(2, (pitch - 69) / 12.0f)) / sampleRate;
 }
 
 float Tone::tick() {
     phase += phaseIncrement;
-    if (phase > 2*M_PI) phase -= 2*M_PI;
+    if (phase > 2 * M_PI) phase -= 2 * M_PI;
     return phase < M_PI ? 1 : -1;
 }
