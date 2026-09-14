@@ -19,6 +19,7 @@
 #ifndef __SOUND_H__
 #define __SOUND_H__
 
+#include <atomic>
 #include <memory>
 #include <android/asset_manager.h>
 
@@ -27,7 +28,7 @@ public:
     Sound(AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate);
     std::unique_ptr<float[]> data;
     size_t nSamples, offset;
-    bool stopped;
+    std::atomic<bool> stopped;
 };
 
 #endif

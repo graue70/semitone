@@ -21,7 +21,7 @@
 #include <oboe/Oboe.h>
 #include <math.h>
 
-Tone::Tone(int pitch, int concert_a, int sampleRate) : pitch(pitch), phase(0), stopped(false) {
+Tone::Tone(int pitch, int concert_a, int sampleRate) : pitch(pitch), stopped(false), phase(0) {
     phaseIncrement = 2*M_PI * (concert_a*powf(2, (pitch-69)/12.0f)) / sampleRate;
 }
 
