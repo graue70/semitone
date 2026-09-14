@@ -144,22 +144,39 @@ void PianoEngine::stop(int pitch) {
 
 void PianoEngine::playFile(const char *path, int concert_a) {
     mode.store(SOUND_MODE, std::memory_order_relaxed);
-    // decode without holding the lock so the audio callback is never
-    // blocked; the sound is fully decoded before its slot is published, so
-    // the callback never sees a partially-initialized sound
-    Sound *s = new Sound(am, path, concert_a, 1, sampleRate.load(std::memory_order_relaxed));
-    if (s->nSamples == 0) {
-        delete s;
-        return;
-    }
+    // decoding happens without holding the sounds lock so the audio
+    // callback is never blocked; the resulting pcm data is cached, so
+    // repeated plays of the same sound only allocate a small handle
+    std::shared_ptr<const std::vector<float>> pcm = loadSound(path, concert_a);
+    if (pcm->empty()) return;
+
     std::lock_guard<std::mutex> lock(soundsLock);
     for (int i = 0; i < MAX_SOUNDS; ++i) {
         if (sounds[i].load(std::memory_order_relaxed) == nullptr) {
-            sounds[i].store(s, std::memory_order_release);
+            sounds[i].store(new Sound(std::move(pcm)), std::memory_order_release);
             return;
         }
     }
-    delete s;
+}
+
+std::shared_ptr<const std::vector<float>> PianoEngine::loadSound(const char *path, int concert_a) {
+    int sr = sampleRate.load(std::memory_order_relaxed);
+    std::string key = std::string(path) + "|" + std::to_string(concert_a) + "|" + std::to_string(sr);
+
+    {
+        std::lock_guard<std::mutex> lock(cacheLock);
+        auto it = decodedCache.find(key);
+        if (it != decodedCache.end()) return it->second;
+    }
+
+    std::shared_ptr<const std::vector<float>> pcm =
+        decodeSound(am, path, concert_a, 1, sr);
+
+    {
+        std::lock_guard<std::mutex> lock(cacheLock);
+        decodedCache.emplace(key, pcm);
+    }
+    return pcm;
 }
 
 oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, void *data, int32_t frames) {
@@ -223,9 +240,9 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
             float thing = 0;
             for (int j = 0; j < MAX_SOUNDS; ++j) {
                 Sound *tmp = sounds[j].load(std::memory_order_acquire);
-                if (tmp != nullptr && tmp->offset < tmp->nSamples) {
-                    thing += tmp->data[tmp->offset];
-                    if (++tmp->offset == tmp->nSamples) {
+                if (tmp != nullptr && tmp->offset < tmp->data->size()) {
+                    thing += (*tmp->data)[tmp->offset];
+                    if (++tmp->offset == tmp->data->size()) {
                         // mark for deletion in the next cleanup pass
                         tmp->stopped.store(true, std::memory_order_relaxed);
                     }
