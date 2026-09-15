@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: resolve ffmpeg submodule commit
         id: ffmpeg
@@ -108,13 +110,33 @@ jobs:
           VERSION: ${{ steps.apk.outputs.version }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            prev="$(git tag --sort=-creatordate | head -1)"
+            branch="${{ github.ref_name }}"
+            sha="${{ github.sha }}"
+            {
+              echo "branch: $branch, commit: $sha"
+              if [ -n "$prev" ]; then
+                log="$(git log --no-merges --reverse \
+                  --format="* [%h](https://github.com/$GITHUB_REPOSITORY/commit/%H) %s" \
+                  "$prev..$sha")"
+                echo
+                echo "## Commits since $prev"
+                if [ -n "$log" ]; then
+                  echo "$log"
+                else
+                  echo "* (no new commits)"
+                fi
+                echo
+                echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/compare/$prev...$VERSION"
+              fi
+            } > notes.md
             gh release create "$VERSION" "semitone-$VERSION.apk" \
               --prerelease \
               --target "$GITHUB_SHA" \
-              --title "test build $VERSION (${{ github.ref_name }})" \
-              --notes "branch: ${{ github.ref_name }}, commit: ${{ github.sha }}"
+              --title "test build $VERSION ($branch)" \
+              --notes-file notes.md
           else
             gh release create "$GITHUB_REF_NAME" "semitone-$VERSION.apk" \
               --title "$GITHUB_REF_NAME" \
-              --notes "commit: ${{ github.sha }}"
+              --generate-notes
           fi
