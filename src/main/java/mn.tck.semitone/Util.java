@@ -20,6 +20,11 @@ package mn.tck.semitone;
 
 import android.content.SharedPreferences;
 import android.text.TextPaint;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 public class Util {
 
@@ -54,6 +59,28 @@ public class Util {
         String widest = "";
         for (int pc : WHITE_PCS) if (names[pc].length() > widest.length()) widest = names[pc];
         return widest;
+    }
+
+    public static void setupActionBar(AppCompatActivity act, int titleRes) {
+        Toolbar toolbar = (Toolbar) act.findViewById(R.id.toolbar);
+        act.setSupportActionBar(toolbar);
+        act.getSupportActionBar().setTitle(titleRes);
+        act.getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        ViewCompat.setOnApplyWindowInsetsListener(
+                toolbar,
+                (v, insets) -> {
+                    Insets bars =
+                            insets.getInsets(
+                                    WindowInsetsCompat.Type.systemBars()
+                                            | WindowInsetsCompat.Type.displayCutout());
+                    v.setPadding(
+                            v.getPaddingLeft(),
+                            bars.top,
+                            v.getPaddingRight(),
+                            v.getPaddingBottom());
+                    return WindowInsetsCompat.CONSUMED;
+                });
     }
 
     public static int maxTextSize(String text, int maxWidth) {

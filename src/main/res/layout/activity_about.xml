@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<WebView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/aboutbox"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="5dp"
-    android:fitsSystemWindows="true" />
+    android:orientation="vertical">
+
+    <include layout="@layout/app_bar" />
+
+    <WebView
+        android:id="@+id/aboutbox"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_margin="5dp" />
+</LinearLayout>

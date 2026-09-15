@@ -28,8 +28,8 @@ public class AboutActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.activity_about);
+        Util.setupActionBar(this, R.string.about_title);
 
         WebView wv = (WebView) findViewById(R.id.aboutbox);
         wv.loadUrl("file:///android_asset/" + getResources().getString(R.string.about_file));
