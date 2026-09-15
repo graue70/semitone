@@ -29,7 +29,7 @@ import android.view.View;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 
-import java.util.HashMap;
+import android.util.SparseIntArray;
 
 public class PianoView extends View {
 
@@ -43,11 +43,14 @@ public class PianoView extends View {
 
     protected int[][] pitches;
     protected boolean[] pressed;
-    HashMap<Integer, Integer> pointers;
+    SparseIntArray pointers;
 
     protected int concert_a;
     protected boolean sustain, labelnotes, labelc;
     protected String[] notenames = Util.notenames;
+
+    private int labelWidth = -1, labelTextSize;
+    private String[] labelNames = null;
 
     public PianoView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -72,7 +75,7 @@ public class PianoView extends View {
         blackPaint.setTextAlign(Paint.Align.CENTER);
 
         pressed = new boolean[300];
-        pointers = new HashMap<Integer, Integer>();
+        pointers = new SparseIntArray();
     }
 
     public void updateParams(boolean inval) {
@@ -108,8 +111,15 @@ public class PianoView extends View {
         whiteHeight = height / rows;
         blackWidth = whiteWidth * 2 / 3;
         blackHeight = whiteHeight / 2;
-        blackPaint.setTextSize(
-                Util.maxTextSize(Util.widestWhiteName(notenames) + "0", whiteWidth * 2/3));
+
+        // only recompute the label size when the inputs to it change -
+        // measuring text every frame is wasteful
+        if (labelWidth != whiteWidth || labelNames != notenames) {
+            labelWidth = whiteWidth;
+            labelNames = notenames;
+            labelTextSize = Util.maxTextSize(Util.widestWhiteName(notenames) + "0", whiteWidth * 2/3);
+            blackPaint.setTextSize(labelTextSize);
+        }
 
         for (int row = 0; row < rows; ++row) {
             for (int key = 0; key < keys; ++key) {
@@ -144,7 +154,7 @@ public class PianoView extends View {
         getParent().requestDisallowInterceptTouchEvent(true);
 
         int np = ev.getPointerCount();
-        int pid, p;
+        int pid, p, prev;
 
         switch (ev.getActionMasked()) {
 
@@ -166,8 +176,9 @@ public class PianoView extends View {
             boolean anyChange = false;
             for (int i = 0; i < np; ++i) {
                 pid = ev.getPointerId(i); p = getPitch(ev, i);
-                if (pointers.get(pid) != p) {
-                    stop(pointers.get(pid));
+                prev = pointers.get(pid, -1);
+                if (prev != p) {
+                    if (prev >= 0) stop(prev);
                     pointers.put(pid, p);
                     play(p);
                     anyChange = true;
@@ -177,12 +188,18 @@ public class PianoView extends View {
             return true;
 
         case MotionEvent.ACTION_UP:
-            stop(pointers.remove(ev.getPointerId(0)));
+            pid = ev.getPointerId(0);
+            prev = pointers.get(pid, -1);
+            if (prev >= 0) stop(prev);
+            pointers.delete(pid);
             invalidate();
             return true;
 
         case MotionEvent.ACTION_POINTER_UP:
-            stop(pointers.remove(ev.getPointerId(ev.getActionIndex())));
+            pid = ev.getPointerId(ev.getActionIndex());
+            prev = pointers.get(pid, -1);
+            if (prev >= 0) stop(prev);
+            pointers.delete(pid);
             invalidate();
             return true;
 

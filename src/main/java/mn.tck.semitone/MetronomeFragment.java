@@ -23,12 +23,12 @@ import android.content.SharedPreferences;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
-import android.view.Gravity;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.Button;
@@ -54,7 +54,7 @@ public class MetronomeFragment extends SemitoneFragment {
 
     LinearLayout dotsView;
     ArrayList<Dot> dots;
-    int activeDot;
+    volatile int activeDot;
 
     NumBox tempoBox, beatsBox, subdivBox;
     SeekBar tempoBar;
@@ -66,10 +66,6 @@ public class MetronomeFragment extends SemitoneFragment {
 
     Tick tick;
     int strong, weak;
-
-    public MetronomeFragment() {
-        MainActivity.mf = this;
-    }
 
     @Override public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
         return inflater.inflate(R.layout.metronome, container, false);
@@ -146,7 +142,7 @@ public class MetronomeFragment extends SemitoneFragment {
         ntaps = 0;
         tapBtn.setOnClickListener(new Button.OnClickListener() {
             @Override public void onClick(View v) {
-                long time = System.currentTimeMillis();
+                long time = SystemClock.elapsedRealtime();
                 if (ntaps > 0 && time - taps[ntaps-1] > 3000) {
                     // time out after 3 seconds
                     ntaps = 1;
@@ -158,8 +154,10 @@ public class MetronomeFragment extends SemitoneFragment {
                     taps[ntaps++] = time;
                 }
 
-                if (ntaps > 1) {
+                if (ntaps > 1 && taps[ntaps-1] > taps[0]) {
                     tempo = (int)(60000*(ntaps-1) / (taps[ntaps-1] - taps[0]));
+                    if (tempo < MIN_TEMPO) tempo = MIN_TEMPO;
+                    if (tempo > MAX_TEMPO) tempo = MAX_TEMPO;
                     editor.putInt("metronome_tempo", tempo);
                     editor.apply();
                     tempoBox.setValue(tempo);
@@ -184,10 +182,7 @@ public class MetronomeFragment extends SemitoneFragment {
 
     @Override public void onDestroyView() {
         super.onDestroyView();
-        if (tick != null) {
-            tick.keepGoing = false;
-            tick.interrupt();
-        }
+        stopTick();
     }
 
     @Override public void onSettingsChanged() {}
@@ -200,39 +195,47 @@ public class MetronomeFragment extends SemitoneFragment {
         return dot;
     }
 
+    private void stopTick() {
+        if (tick != null) {
+            tick.keepGoing = false;
+            tick.interrupt();
+        }
+    }
+
     private void toggle() {
+        android.app.Activity act = getActivity();
+        // the tick thread can ask to stop while the fragment is already
+        // detached - there is nothing to do in that case
+        if (act == null) return;
         enabled = !enabled;
         if (enabled) {
             startBtn.setText(getString(R.string.stop_btn));
             activeDot = -1;
             tick = new Tick(tempo, subdiv);
             tick.start();
-            getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            act.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         } else {
             startBtn.setText(getString(R.string.start_btn));
-            if (tick != null) {
-                tick.keepGoing = false;
-                tick.interrupt();
-            }
-            getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            stopTick();
+            act.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
     }
 
     private void intermediateTempoChange() {
         if (!enabled) return;
-        long elapsedTime = System.currentTimeMillis() - tick.tickTime(tick.nTicks - 1);
+        long elapsedTime = SystemClock.elapsedRealtime() - tick.tickTime(tick.nTicks - 1);
 
         tick.tempo = tempo;
         tick.subdiv = subdiv;
         if (elapsedTime >= tick.delayTime()) {
             // immediate tick
             tick.nTicks = 0;
-            tick.startTime = System.currentTimeMillis();
+            tick.startTime = SystemClock.elapsedRealtime();
             tick.nextTime = tick.startTime;
         } else {
             // count the time since the last tick towards the next one
             tick.nTicks = 1;
-            tick.startTime = System.currentTimeMillis() - elapsedTime;
+            tick.startTime = SystemClock.elapsedRealtime() - elapsedTime;
             tick.nextTime = tick.tickTime(1);
         }
 
@@ -256,8 +259,8 @@ public class MetronomeFragment extends SemitoneFragment {
     }
 
     class Tick extends Thread {
-        protected int tempo, subdiv, nTicks;
-        protected long startTime, nextTime;
+        protected volatile int tempo, subdiv, nTicks;
+        protected volatile long startTime, nextTime;
         boolean keepGoing;
         public Tick(int tempo, int subdiv) {
             this.tempo = tempo;
@@ -267,14 +270,14 @@ public class MetronomeFragment extends SemitoneFragment {
 
         @Override public void run() {
             nTicks = 0;
-            startTime = System.currentTimeMillis();
+            startTime = SystemClock.elapsedRealtime();
             nextTime = startTime;
             while (keepGoing) {
-                long diff = nextTime - System.currentTimeMillis();
+                long diff = nextTime - SystemClock.elapsedRealtime();
                 if (diff <= 0) {}
                 // else if (diff <= 5) {
                 //     // 5ms - arbitrary cutoff for when to busyloop
-                //     while (System.currentTimeMillis() < nextTime);
+                //     while (SystemClock.elapsedRealtime() < nextTime);
                 // }
                 else {
                     // we have a while - sleep and check again
@@ -295,17 +298,17 @@ public class MetronomeFragment extends SemitoneFragment {
 
                 // time for another tick
                 if (nTicks % subdiv == 0) activeDot = (activeDot + 1) % beats;
-                PianoEngine.playFile(nTicks % subdiv == 0 && dots.get(activeDot).big ?
-                        "strong.mp3" : "weak.mp3", 440);
+                boolean big = activeDot >= 0 && activeDot < dots.size() && dots.get(activeDot).big;
+                PianoEngine.playFile(nTicks % subdiv == 0 && big ? "strong.mp3" : "weak.mp3", 440);
                 if (getActivity() != null) getActivity().runOnUiThread(new Runnable() {
                     @Override public void run() {
-                        dots.get(activeDot).turnOn();
+                        if (activeDot >= 0 && activeDot < dots.size()) dots.get(activeDot).turnOn();
                     }
                 });
                 try { Thread.sleep(Math.min(100, (long)(delayTime()/2))); } catch (InterruptedException e) {}
                 if (getActivity() != null) getActivity().runOnUiThread(new Runnable() {
                     @Override public void run() {
-                        dots.get(activeDot).turnOff();
+                        if (activeDot >= 0 && activeDot < dots.size()) dots.get(activeDot).turnOff();
                     }
                 });
 

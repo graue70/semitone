@@ -90,10 +90,9 @@ public class DSP {
         fft(aim, are); // inverse fft
     }
 
-    // get frequency from mic data (buf must have length fftlen)
+    // get frequency from mic data (buf must have length fftlen and is
+    // modified in place); returns -1 if no frequency could be found
     public static double freq(double[] buf, int sr) {
-        // TODO check buf length
-        // TODO clone buf if necessary
         autocorr(buf);
         // look for the maximum value after the first local minimum
         // (only look halfway through cause it's symmetric)
@@ -102,20 +101,20 @@ public class DSP {
         int j = -1; // maxidx
         for (int i = 0; i < fftlen/2; ++i) {
             if (looking) {
-                double weighted = buf[i] * 1; // naive weighting
-                if (weighted > maxval) {
-                    maxval = weighted;
+                if (buf[i] > maxval) {
+                    maxval = buf[i];
                     j = i;
                 }
             } else {
-                // looking = buf[i] < buf[i+1];
                 looking = buf[i] < 0;
             }
         }
-        // TODO handle this better
-        if (j == -1) return 440;
+        // no peak found, or too close to the edges for interpolation
+        if (j <= 0 || j >= fftlen/2 - 1) return -1;
         // quadratic interpolation
-        double interp = 0.5 * (buf[j-1] - buf[j+1]) / (buf[j-1] - 2*buf[j] + buf[j+1]);
+        double denom = buf[j-1] - 2*buf[j] + buf[j+1];
+        if (denom == 0) return -1;
+        double interp = 0.5 * (buf[j-1] - buf[j+1]) / denom;
         return (double)sr / (j + interp);
     }
 

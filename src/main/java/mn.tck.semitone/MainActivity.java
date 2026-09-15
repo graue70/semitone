@@ -23,9 +23,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Window;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.ImageView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -39,23 +36,21 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
+import java.util.ArrayList;
+
 public class MainActivity extends FragmentActivity {
 
-    // ImageView fullscreen;
-    ImageView settings;
+    // live fragments register themselves here (see SemitoneFragment) so
+    // settings changes can be pushed to whichever exist
+    static final ArrayList<SemitoneFragment> fragments = new ArrayList<>();
 
-    static TunerFragment tf;
-    static MetronomeFragment mf;
-    static PianoFragment pf;
-    static String tt, mt, pt;
+    ImageView settings;
 
     boolean keeptick;
 
     private final ActivityResultLauncher<Intent> settingsLauncher =
         registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            if (tf != null) tf.onSettingsChanged();
-            if (mf != null) mf.onSettingsChanged();
-            if (pf != null) pf.onSettingsChanged();
+            for (SemitoneFragment f : fragments) f.onSettingsChanged();
             keeptick = PreferenceManager.getDefaultSharedPreferences(this)
                 .getBoolean("keeptick", false);
         });
@@ -68,41 +63,31 @@ public class MainActivity extends FragmentActivity {
         PianoEngine.create(this);
         RecordEngine.create(this);
 
+        // fill in defaults from settings.xml for anything not set yet
+        PreferenceManager.setDefaultValues(this, R.xml.settings, false);
+
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences.Editor e = sp.edit();
-        if (!sp.contains("concert_a")) e.putString("concert_a", "440");
-        if (!sp.contains("keeptick")) e.putBoolean("keeptick", false);
-        if (!sp.contains("sustain")) e.putBoolean("sustain", false);
-        if (!sp.contains("labelnotes")) e.putBoolean("labelnotes", true);
-        if (!sp.contains("labelc")) e.putBoolean("labelc", true);
-        if (!sp.contains("notenames")) e.putString("notenames", "0");
-        e.apply();
-
         keeptick = sp.getBoolean("keeptick", false);
-
-        tt = getResources().getString(R.string.tuner_title);
-        mt = getResources().getString(R.string.metronome_title);
-        pt = getResources().getString(R.string.piano_title);
 
         ViewPager2 pager = (ViewPager2) findViewById(R.id.pager);
         TabLayout tabs = (TabLayout) findViewById(R.id.tabs);
         SemitoneAdapter adapter = new SemitoneAdapter(this);
 
         pager.setAdapter(adapter);
-        new TabLayoutMediator(tabs, pager, (tab, pos) ->
-                tab.setText(pos == 0 ? tt : pos == 1 ? mt : pt)).attach();
+        new TabLayoutMediator(tabs, pager, (tab, pos) -> tab.setText(
+                getResources().getString(pos == 0 ? R.string.tuner_title
+                        : pos == 1 ? R.string.metronome_title : R.string.piano_title))).attach();
         pager.setCurrentItem(sp.getInt("lastpage", 0), false);
 
         pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageSelected(int pos) {
                 if (pos == 0) RecordEngine.resume();
                 else RecordEngine.pause();
-                e.putInt("lastpage", pos);
-                e.apply();
+                PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
+                    .edit().putInt("lastpage", pos).apply();
             }
         });
 
-        // fullscreen = (ImageView) findViewById(R.id.fullscreen);
         settings = (ImageView) findViewById(R.id.settings);
 
         settings.setOnClickListener(new View.OnClickListener() {

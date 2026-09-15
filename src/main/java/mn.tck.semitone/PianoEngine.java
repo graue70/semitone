@@ -22,7 +22,6 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
-import android.os.Build;
 
 public class PianoEngine {
 
@@ -43,30 +42,32 @@ public class PianoEngine {
         // use a robust low-performance stream configuration for bluetooth output,
         // where exclusive low-latency streams tend to produce constant underruns
         boolean bluetooth = false;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
-                int t = d.getType();
-                if (t == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
-                        || t == AudioDeviceInfo.TYPE_BLE_HEADSET
-                        || t == AudioDeviceInfo.TYPE_BLE_SPEAKER) {
-                    bluetooth = true;
-                    break;
-                }
+        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+            int t = d.getType();
+            if (t == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                    || t == AudioDeviceInfo.TYPE_BLE_HEADSET
+                    || t == AudioDeviceInfo.TYPE_BLE_SPEAKER) {
+                bluetooth = true;
+                break;
             }
         }
         setBluetoothOutput(bluetooth);
 
         handle = createPianoEngine(context.getAssets());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        if (handle == 0) return false;
+
+        // keep oboe's defaults if the device doesn't report its output
+        // configuration
+        try {
             setSampleRate(Integer.parseInt(am.getProperty(
                             AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)));
             setFramesPerBurst(Integer.parseInt(am.getProperty(
                             AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)));
-        }
+        } catch (NumberFormatException e) {}
+
         paused = false;
-        return false;
+        return true;
     }
 
     public static void destroy() {
