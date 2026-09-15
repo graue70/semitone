@@ -19,7 +19,10 @@
 #ifndef __PIANO_ENGINE_H__
 #define __PIANO_ENGINE_H__
 
-#include <thread>
+#include <atomic>
+#include <memory>
+#include <mutex>
+
 #include <android/asset_manager.h>
 #include <oboe/Oboe.h>
 
@@ -38,7 +41,7 @@ public:
     explicit PianoEngine(AAssetManager &am);
     ~PianoEngine();
 
-    static bool bluetoothOutput;
+    static std::atomic<bool> bluetoothOutput;
     void play(int pitch, int concert_a);
     void stop(int pitch);
     void pause();
@@ -54,15 +57,21 @@ private:
 
     AAssetManager &am;
 
-    oboe::AudioStream *stream;
-    bool is16bit;
+    // the stream is opened on the ui thread but also (re)opened from the
+    // oboe error callback, so it can be touched from both
+    std::atomic<oboe::AudioStream*> stream {nullptr};
+    bool is16bit = false;
     std::unique_ptr<float[]> buf16;
-    int sampleRate = oboe::DefaultStreamValues::SampleRate;
+    std::atomic<int> sampleRate {0};
     int logCounter = 0;
 
-    Tone *tones[MAX_TONES] = {nullptr};
-    Sound *sounds[MAX_SOUNDS] = {nullptr};
-    int mode = TONE_MODE;
+    // tone/sound slots are shared between the ui thread (which allocates)
+    // and the audio callback (which consumes and frees); all shared state
+    // is atomic, and pointer changes additionally happen under the
+    // respective lock
+    std::atomic<Tone*> tones[MAX_TONES] = {};
+    std::atomic<Sound*> sounds[MAX_SOUNDS] = {};
+    std::atomic<int> mode {TONE_MODE};
 
     std::mutex restartLock, tonesLock, soundsLock;
 
