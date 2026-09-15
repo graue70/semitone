@@ -37,34 +37,28 @@ extern "C" {
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN,    "semitone", __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,   "semitone", __VA_ARGS__)
 
-// bundle the asset and the original avio buffer, since the avio context
-// may swap its internal buffer out from under us
-struct AssetIo {
-    AAsset *asset;
-    uint8_t *origBuf;
-};
-
 static int read(void *ptr, uint8_t *buf, int bufsize) {
-    return AAsset_read(static_cast<AssetIo*>(ptr)->asset, buf, (size_t)bufsize);
+    return AAsset_read((AAsset*)ptr, buf, (size_t)bufsize);
 }
 
 static int64_t seek(void *ptr, int64_t offset, int whence) {
     // See https://www.ffmpeg.org/doxygen/3.0/avio_8h.html#a427ff2a881637b47ee7d7f9e368be63f
-    AAsset *a = static_cast<AssetIo*>(ptr)->asset;
-    if (whence == AVSEEK_SIZE) return AAsset_getLength(a);
-    if (AAsset_seek(a, offset, whence) == -1) {
+    if (whence == AVSEEK_SIZE) return AAsset_getLength((AAsset*)ptr);
+    if (AAsset_seek((AAsset*)ptr, offset, whence) == -1) {
         return -1;
     } else {
         return 0;
     }
 }
 
+// only the *current* buffer may be freed here: when avformat_open_input
+// probes the input (which it always does for a custom pb without a preset
+// format, see av_probe_input_buffer2 in demux.c), ffio_rewind_with_probe_data
+// frees the buffer we passed in and swaps in its own probe buffer, so tracking
+// the original pointer here would double-free it
 static void freeAvioContext(AVIOContext *c) {
-    AssetIo *io = static_cast<AssetIo*>(c->opaque);
-    if (c->buffer != io->origBuf) av_free(io->origBuf);
     av_free(c->buffer);
     avio_context_free(&c);
-    delete io;
 }
 
 // on any failure, nSamples stays 0 and the engine drops the sound
@@ -78,22 +72,16 @@ Sound::Sound(AAssetManager &am, const char *path, int concert_a, int channels, i
 
     // obtain AVIOContext reading straight from the asset (with deleter)
     uint8_t *avioBuf = reinterpret_cast<uint8_t*>(av_malloc(MP3_BLOCKSIZE));
-    AssetIo *io = nullptr;
-    if (avioBuf != nullptr) {
-        io = new (std::nothrow) AssetIo {a, avioBuf};
-        if (io == nullptr) av_free(avioBuf);
-    }
-    if (io == nullptr) {
+    if (avioBuf == nullptr) {
         LOGE("out of memory reading %s", path);
         AAsset_close(a);
         return;
     }
 
     std::unique_ptr<AVIOContext, void(*)(AVIOContext*)> ioc {nullptr, &freeAvioContext};
-    AVIOContext *iocTmp = avio_alloc_context(avioBuf, MP3_BLOCKSIZE, 0, io, read, nullptr, seek);
+    AVIOContext *iocTmp = avio_alloc_context(avioBuf, MP3_BLOCKSIZE, 0, a, read, nullptr, seek);
     if (iocTmp == nullptr) {
         av_free(avioBuf);
-        delete io;
         LOGE("could not allocate avio context for %s", path);
         AAsset_close(a);
         return;
