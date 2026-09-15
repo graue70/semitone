@@ -199,8 +199,7 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
         std::lock_guard<std::mutex> lock(tonesLock);
         for (int i = 0; i < MAX_TONES; ++i) {
             Tone *tmp = tones[i].load(std::memory_order_relaxed);
-            if (tmp != nullptr &&
-                (tmp->stopped.load(std::memory_order_relaxed) || curMode != TONE_MODE)) {
+            if (tmp != nullptr && (tmp->finished() || curMode != TONE_MODE)) {
                 tones[i].store(nullptr, std::memory_order_relaxed);
                 delete tmp;
             }
