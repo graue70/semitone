@@ -30,6 +30,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/vertical_24"
+                android:importantForAccessibility="no"
                 android:padding="5dp" />
 
             <ImageView
@@ -37,6 +38,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/add_circle_24"
+                android:contentDescription="@string/piano_add_row"
                 android:padding="5dp" />
 
             <ImageView
@@ -44,6 +46,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/remove_circle_24"
+                android:contentDescription="@string/piano_remove_row"
                 android:padding="5dp" />
 
             <android.widget.Space
@@ -56,6 +59,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/reset_view"
+                android:contentDescription="@string/piano_reset_view"
                 android:padding="5dp" />
         </LinearLayout>
 
@@ -68,6 +72,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/horizontal_24"
+                android:importantForAccessibility="no"
                 android:padding="5dp" />
 
             <ImageView
@@ -75,6 +80,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/add_circle_24"
+                android:contentDescription="@string/piano_add_col"
                 android:padding="5dp" />
 
             <ImageView
@@ -82,6 +88,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/remove_circle_24"
+                android:contentDescription="@string/piano_remove_col"
                 android:padding="5dp" />
 
             <ImageView
@@ -89,6 +96,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/chevron2_left_24"
+                android:contentDescription="@string/piano_octave_left"
                 android:padding="5dp" />
 
             <ImageView
@@ -96,6 +104,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/chevron_left_24"
+                android:contentDescription="@string/piano_key_left"
                 android:padding="5dp" />
 
             <ImageView
@@ -103,6 +112,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/chevron_right_24"
+                android:contentDescription="@string/piano_key_right"
                 android:padding="5dp" />
 
             <ImageView
@@ -110,6 +120,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/chevron2_right_24"
+                android:contentDescription="@string/piano_octave_right"
                 android:padding="5dp" />
 
         </LinearLayout>

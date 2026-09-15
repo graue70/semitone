@@ -21,5 +21,15 @@ package mn.tck.semitone;
 import androidx.fragment.app.Fragment;
 
 public abstract class SemitoneFragment extends Fragment {
+
+    SemitoneFragment() {
+        MainActivity.fragments.add(this);
+    }
+
+    @Override public void onDestroy() {
+        MainActivity.fragments.remove(this);
+        super.onDestroy();
+    }
+
     abstract void onSettingsChanged();
 }

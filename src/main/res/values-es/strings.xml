@@ -49,4 +49,14 @@
 
     <string name="piano_title">Piano</string>
 
+    <string name="piano_add_row">Añadir fila</string>
+    <string name="piano_remove_row">Quitar fila</string>
+    <string name="piano_add_col">Añadir columna</string>
+    <string name="piano_remove_col">Quitar columna</string>
+    <string name="piano_octave_left">Octava izquierda</string>
+    <string name="piano_key_left">Tecla izquierda</string>
+    <string name="piano_key_right">Tecla derecha</string>
+    <string name="piano_octave_right">Octava derecha</string>
+    <string name="piano_reset_view">Restaurar vista</string>
+
 </resources>
