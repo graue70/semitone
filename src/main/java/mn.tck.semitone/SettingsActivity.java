@@ -49,10 +49,4 @@ public class SettingsActivity extends AppCompatActivity {
                             }
                         });
     }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        getOnBackPressedDispatcher().onBackPressed();
-        return true;
-    }
 }

@@ -63,23 +63,19 @@ public class Util {
 
     public static void setupActionBar(AppCompatActivity act, int titleRes) {
         Toolbar toolbar = (Toolbar) act.findViewById(R.id.toolbar);
-        act.setSupportActionBar(toolbar);
-        act.getSupportActionBar().setTitle(titleRes);
-        act.getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        toolbar.setTitle(titleRes);
+        toolbar.setNavigationOnClickListener(v -> act.getOnBackPressedDispatcher().onBackPressed());
 
+        View root = act.findViewById(R.id.contentroot);
         ViewCompat.setOnApplyWindowInsetsListener(
-                toolbar,
+                root,
                 (v, insets) -> {
                     Insets bars =
                             insets.getInsets(
                                     WindowInsetsCompat.Type.systemBars()
                                             | WindowInsetsCompat.Type.displayCutout());
-                    v.setPadding(
-                            v.getPaddingLeft(),
-                            bars.top,
-                            v.getPaddingRight(),
-                            v.getPaddingBottom());
-                    return WindowInsetsCompat.CONSUMED;
+                    v.setPadding(v.getPaddingLeft(), bars.top, v.getPaddingRight(), bars.bottom);
+                    return insets;
                 });
     }
 

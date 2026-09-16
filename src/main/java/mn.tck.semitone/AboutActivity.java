@@ -35,10 +35,4 @@ public class AboutActivity extends AppCompatActivity {
         wv.loadUrl("file:///android_asset/" + getResources().getString(R.string.about_file));
         wv.setBackgroundColor(Color.TRANSPARENT);
     }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
-    }
 }
