@@ -29,8 +29,23 @@ Tone::Tone(int pitch, int concert_a, int sampleRate)
       releaseStart(-1),
       attackSamples(sampleRate * 8 / 1000),
       releaseSamples(sampleRate * 50 / 1000) {
-    phaseIncrement = 2 * M_PI * (concert_a * powf(2, (pitch - 69) / 12.0f)) / sampleRate;
+    float freq = concert_a * powf(2, (pitch - 69) / 12.0f);
+    phaseIncrement = 2 * M_PI * freq / sampleRate;
     totalSamples = (int)((unsigned)-1 >> 1);
+
+    nPartials = freq < 220 ? (int)(880 / freq) : 4;
+    if (nPartials < 4) nPartials = 4;
+    if (nPartials > 16) nPartials = 16;
+
+    norm = 0;
+    for (int n = 1; n <= nPartials; ++n) {
+        amp[n - 1] = n <= 4 ? 1.f / (n * n) : 1.f / n;
+        norm += amp[n - 1];
+    }
+
+    boost = 250.f / freq;
+    if (boost < 1) boost = 1;
+    if (boost > 1.6f) boost = 1.6f;
 }
 
 bool Tone::finished() const { return pos >= totalSamples; }
@@ -53,11 +68,11 @@ float Tone::tick() {
         env = 1;
     }
 
-    float wave =
-        sinf(phase) + 0.5f * sinf(2 * phase) + 0.25f * sinf(3 * phase) + 0.125f * sinf(4 * phase);
+    float wave = 0;
+    for (int n = 1; n <= nPartials; ++n) wave += amp[n - 1] * sinf(n * phase);
 
     phase += phaseIncrement;
     if (phase > 2 * M_PI) phase -= 2 * M_PI;
 
-    return env * wave / (1.f + 0.5f + 0.25f + 0.125f) * 0.35f;
+    return env * wave / norm * 0.5f * boost;
 }
