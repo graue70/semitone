@@ -21,6 +21,16 @@
 #include <oboe/Oboe.h>
 #include <math.h>
 
+// smoothstep rolloff applied to extended partials (n > 4) by their own
+// frequency: full below 700 Hz, silent above 1200 Hz, so partials fade in
+// gradually as notes descend instead of switching on at hard frequency steps
+static float knee(float f) {
+    float t = (1200.f - f) / 500.f;
+    if (t < 0) t = 0;
+    if (t > 1) t = 1;
+    return t * t * (3 - 2 * t);
+}
+
 Tone::Tone(int pitch, int concert_a, int sampleRate)
     : pitch(pitch),
       stopped(false),
@@ -33,14 +43,16 @@ Tone::Tone(int pitch, int concert_a, int sampleRate)
     phaseIncrement = 2 * M_PI * freq / sampleRate;
     totalSamples = (int)((unsigned)-1 >> 1);
 
-    nPartials = freq < 220 ? (int)(880 / freq) : 4;
+    nPartials = freq < 220 ? (int)(1200 / freq) : 4;
     if (nPartials < 4) nPartials = 4;
-    if (nPartials > 16) nPartials = 16;
+    if (nPartials > 24) nPartials = 24;
 
     norm = 0;
     for (int n = 1; n <= nPartials; ++n) {
-        amp[n - 1] = n <= 4 ? 1.f / (n * n) : 1.f / n;
-        norm += amp[n - 1];
+        float a = n <= 4 ? 1.f / (n * n) : 1.f / n;
+        if (n > 4) a *= knee(n * freq);
+        amp[n - 1] = a;
+        norm += a;
     }
 
     boost = 250.f / freq;
