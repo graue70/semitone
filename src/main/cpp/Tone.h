@@ -22,13 +22,13 @@
 #include <atomic>
 
 class Tone {
-public:
+   public:
     Tone(int pitch, int concert_a, int sampleRate);
     float tick();
     int pitch;
     std::atomic<bool> stopped;
 
-private:
+   private:
     float phase, phaseIncrement;
 };
 

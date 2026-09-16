@@ -21,13 +21,13 @@
 #include <math.h>
 
 #include <android/log.h>
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,    "semitone", __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,   "semitone", __VA_ARGS__)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "semitone", __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "semitone", __VA_ARGS__)
 
 PianoEngine::PianoEngine(AAssetManager &am) : am(am) { init(); }
 PianoEngine::~PianoEngine() { deinit(); }
 
-std::atomic<bool> PianoEngine::bluetoothOutput {false};
+std::atomic<bool> PianoEngine::bluetoothOutput{false};
 
 void PianoEngine::init() {
     bool bluetooth = bluetoothOutput.load(std::memory_order_relaxed);
@@ -58,13 +58,15 @@ void PianoEngine::init() {
     int32_t burst = newStream->getFramesPerBurst();
     newStream->setBufferSizeInFrames(bluetooth ? burst * 2 : burst);
     is16bit = newStream->getFormat() == oboe::AudioFormat::I16;
-    if (is16bit) buf16 = std::make_unique<float[]>(
-            newStream->getBufferCapacityInFrames() * newStream->getChannelCount());
+    if (is16bit)
+        buf16 = std::make_unique<float[]>(newStream->getBufferCapacityInFrames() *
+                                          newStream->getChannelCount());
 
-    LOGI("output stream: api %s, bt %d, sample rate %d, burst %d, buffer %d, 16bit %d, xruns supported %d",
-            oboe::convertToText(newStream->getAudioApi()), bluetooth,
-            newStream->getSampleRate(), burst, newStream->getBufferSizeInFrames(),
-            is16bit, newStream->isXRunCountSupported());
+    LOGI(
+        "output stream: api %s, bt %d, sample rate %d, burst %d, buffer %d, 16bit %d, xruns "
+        "supported %d",
+        oboe::convertToText(newStream->getAudioApi()), bluetooth, newStream->getSampleRate(), burst,
+        newStream->getBufferSizeInFrames(), is16bit, newStream->isXRunCountSupported());
 
     // publish the stream only after it is fully configured, then start it
     stream.store(newStream, std::memory_order_release);
@@ -128,7 +130,7 @@ void PianoEngine::play(int pitch, int concert_a) {
     for (int i = 0; i < MAX_TONES; ++i) {
         if (tones[i].load(std::memory_order_relaxed) == nullptr) {
             tones[i].store(new Tone(pitch, concert_a, sampleRate.load(std::memory_order_relaxed)),
-                    std::memory_order_release);
+                           std::memory_order_release);
             break;
         }
     }
@@ -161,7 +163,8 @@ void PianoEngine::playFile(const char *path, int concert_a) {
 
 std::shared_ptr<const std::vector<float>> PianoEngine::loadSound(const char *path, int concert_a) {
     int sr = sampleRate.load(std::memory_order_relaxed);
-    std::string key = std::string(path) + "|" + std::to_string(concert_a) + "|" + std::to_string(sr);
+    std::string key =
+        std::string(path) + "|" + std::to_string(concert_a) + "|" + std::to_string(sr);
 
     {
         std::lock_guard<std::mutex> lock(cacheLock);
@@ -169,8 +172,7 @@ std::shared_ptr<const std::vector<float>> PianoEngine::loadSound(const char *pat
         if (it != decodedCache.end()) return it->second;
     }
 
-    std::shared_ptr<const std::vector<float>> pcm =
-        decodeSound(am, path, concert_a, 1, sr);
+    std::shared_ptr<const std::vector<float>> pcm = decodeSound(am, path, concert_a, 1, sr);
 
     {
         std::lock_guard<std::mutex> lock(cacheLock);
@@ -179,13 +181,14 @@ std::shared_ptr<const std::vector<float>> PianoEngine::loadSound(const char *pat
     return pcm;
 }
 
-oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, void *data, int32_t frames) {
+oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, void *data,
+                                                   int32_t frames) {
     if (++logCounter % 50 == 0 && stream->isXRunCountSupported()) {
         auto xruns = stream->getXRunCount();
         LOGI("xruns after %d callbacks: %d", logCounter, xruns ? xruns.value() : -1);
     }
 
-    float *outBuf = is16bit ? buf16.get() : static_cast<float*>(data);
+    float *outBuf = is16bit ? buf16.get() : static_cast<float *>(data);
     int channels = stream->getChannelCount();
     int curMode = mode.load(std::memory_order_relaxed);
 
@@ -196,7 +199,8 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
         std::lock_guard<std::mutex> lock(tonesLock);
         for (int i = 0; i < MAX_TONES; ++i) {
             Tone *tmp = tones[i].load(std::memory_order_relaxed);
-            if (tmp != nullptr && (tmp->stopped.load(std::memory_order_relaxed) || curMode != TONE_MODE)) {
+            if (tmp != nullptr &&
+                (tmp->stopped.load(std::memory_order_relaxed) || curMode != TONE_MODE)) {
                 tones[i].store(nullptr, std::memory_order_relaxed);
                 delete tmp;
             }
@@ -206,7 +210,8 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
         std::lock_guard<std::mutex> lock(soundsLock);
         for (int i = 0; i < MAX_SOUNDS; ++i) {
             Sound *tmp = sounds[i].load(std::memory_order_relaxed);
-            if (tmp != nullptr && (tmp->stopped.load(std::memory_order_relaxed) || curMode != SOUND_MODE)) {
+            if (tmp != nullptr &&
+                (tmp->stopped.load(std::memory_order_relaxed) || curMode != SOUND_MODE)) {
                 sounds[i].store(nullptr, std::memory_order_relaxed);
                 delete tmp;
             }
@@ -231,9 +236,9 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
                 // between one tone and two played simultaneously is too dramatic,
                 // so scale single tones far down first and gradually bring them
                 // back up
-                thing *= 1-expf(-(nTones-1)*0.5f)/2;
+                thing *= 1 - expf(-(nTones - 1) * 0.5f) / 2;
             }
-            for (int ch = 0; ch < channels; ++ch) outBuf[i*channels+ch] = thing;
+            for (int ch = 0; ch < channels; ++ch) outBuf[i * channels + ch] = thing;
         }
     } else if (curMode == SOUND_MODE) {
         for (int i = 0; i < frames; ++i) {
@@ -248,11 +253,11 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
                     }
                 }
             }
-            for (int ch = 0; ch < channels; ++ch) outBuf[i*channels+ch] = thing;
+            for (int ch = 0; ch < channels; ++ch) outBuf[i * channels + ch] = thing;
         }
     }
 
-    if (is16bit) oboe::convertFloatToPcm16(outBuf, static_cast<int16_t*>(data), frames*channels);
+    if (is16bit) oboe::convertFloatToPcm16(outBuf, static_cast<int16_t *>(data), frames * channels);
     return oboe::DataCallbackResult::Continue;
 }
 

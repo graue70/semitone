@@ -12,64 +12,57 @@ extern "C" {
  * Method:    createPianoEngine
  * Signature: (Landroid/content/res/AssetManager;)J
  */
-JNIEXPORT jlong JNICALL Java_mn_tck_semitone_PianoEngine_createPianoEngine
-  (JNIEnv *, jclass, jobject);
+JNIEXPORT jlong JNICALL Java_mn_tck_semitone_PianoEngine_createPianoEngine(JNIEnv *, jclass,
+                                                                           jobject);
 
 /*
  * Class:     mn_tck_semitone_PianoEngine
  * Method:    destroyPianoEngine
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_destroyPianoEngine
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_destroyPianoEngine(JNIEnv *, jclass, jlong);
 
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doPause
-  (JNIEnv *, jclass, jlong);
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doResume
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doPause(JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doResume(JNIEnv *, jclass, jlong);
 
 /*
  * Class:     mn_tck_semitone_PianoEngine
  * Method:    setSampleRate
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setSampleRate
-  (JNIEnv *, jclass, jint);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setSampleRate(JNIEnv *, jclass, jint);
 
 /*
  * Class:     mn_tck_semitone_PianoEngine
  * Method:    setFramesPerBurst
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setFramesPerBurst
-  (JNIEnv *, jclass, jint);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setFramesPerBurst(JNIEnv *, jclass, jint);
 
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setBluetoothOutput
-  (JNIEnv *, jclass, jboolean);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_setBluetoothOutput(JNIEnv *, jclass,
+                                                                           jboolean);
 
 /*
  * Class:     mn_tck_semitone_PianoEngine
  * Method:    doPlay
  * Signature: (JI)V
  */
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doPlay
-  (JNIEnv *, jclass, jlong, jint, jint);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doPlay(JNIEnv *, jclass, jlong, jint, jint);
 
 /*
  * Class:     mn_tck_semitone_PianoEngine
  * Method:    doStop
  * Signature: (JI)V
  */
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doStop
-  (JNIEnv *, jclass, jlong, jint);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doStop(JNIEnv *, jclass, jlong, jint);
 
 /*
  * Class:     mn_tck_semitone_PianoEngine
  * Method:    doPlayFile
  * Signature: (JLjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doPlayFile
-  (JNIEnv *, jclass, jlong, jstring, jint);
+JNIEXPORT void JNICALL Java_mn_tck_semitone_PianoEngine_doPlayFile(JNIEnv *, jclass, jlong, jstring,
+                                                                   jint);
 
 #ifdef __cplusplus
 }

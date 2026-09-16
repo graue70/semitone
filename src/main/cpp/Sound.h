@@ -29,7 +29,7 @@
 // a single playback instance: a shared reference to the decoded pcm data
 // plus a play head; the data may be shared with other sounds
 class Sound {
-public:
+   public:
     explicit Sound(std::shared_ptr<const std::vector<float>> pcm);
 
     std::shared_ptr<const std::vector<float>> data;
@@ -39,7 +39,7 @@ public:
 
 // fully decode an asset into float pcm at the given sample rate; returns
 // an empty vector on failure
-std::shared_ptr<const std::vector<float>> decodeSound(
-        AAssetManager &am, const char *path, int concert_a, int channels, int sampleRate);
+std::shared_ptr<const std::vector<float>> decodeSound(AAssetManager &am, const char *path,
+                                                      int concert_a, int channels, int sampleRate);
 
 #endif
