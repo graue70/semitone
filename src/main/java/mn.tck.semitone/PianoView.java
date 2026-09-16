@@ -33,7 +33,7 @@ public class PianoView extends View {
 
     public int rows, keys, pitch;
     protected int whiteWidth, whiteHeight, blackWidth, blackHeight;
-    protected Paint whitePaint, grey3Paint, grey4Paint, blackPaint;
+    protected Paint whitePaint, grey1Paint, grey3Paint, grey4Paint, blackPaint;
     protected final int OUTLINE = 2, YPAD = 20;
     final int SAMPLE_RATE = 44100;
     final int MAX_TRACKS = 10;
@@ -61,6 +61,8 @@ public class PianoView extends View {
 
         whitePaint = new Paint();
         whitePaint.setColor(ContextCompat.getColor(getContext(), R.color.white));
+        grey1Paint = new Paint();
+        grey1Paint.setColor(ContextCompat.getColor(getContext(), R.color.grey1));
         grey3Paint = new Paint();
         grey3Paint.setColor(ContextCompat.getColor(getContext(), R.color.grey3));
         grey4Paint = new Paint();
@@ -143,14 +145,14 @@ public class PianoView extends View {
                             y,
                             x + blackWidth / 2,
                             y + blackHeight,
-                            pressed[p - 1] ? grey3Paint : blackPaint);
+                            pressed[p - 1] ? grey1Paint : blackPaint);
                 if (hasBlackRight(p))
                     canvas.drawRect(
                             x + whiteWidth - blackWidth / 2,
                             y,
                             x + whiteWidth,
                             y + blackHeight,
-                            pressed[p + 1] ? grey3Paint : blackPaint);
+                            pressed[p + 1] ? grey1Paint : blackPaint);
             }
         }
     }
