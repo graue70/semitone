@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<WebView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/aboutbox"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/contentroot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="5dp"
-    android:fitsSystemWindows="true" />
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/abc_action_bar_default_height_material"
+        android:background="@color/black"
+        app:navigationIcon="?attr/homeAsUpIndicator" />
+
+    <WebView
+        android:id="@+id/aboutbox"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_margin="5dp" />
+</LinearLayout>

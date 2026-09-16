@@ -29,8 +29,8 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.activity_settings);
+        Util.setupActionBar(this, R.string.settings_title);
 
         getSupportFragmentManager()
                 .beginTransaction()
@@ -48,11 +48,5 @@ public class SettingsActivity extends AppCompatActivity {
                                 finish();
                             }
                         });
-    }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        getOnBackPressedDispatcher().onBackPressed();
-        return true;
     }
 }
