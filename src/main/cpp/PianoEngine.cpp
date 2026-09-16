@@ -199,8 +199,7 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
         std::lock_guard<std::mutex> lock(tonesLock);
         for (int i = 0; i < MAX_TONES; ++i) {
             Tone *tmp = tones[i].load(std::memory_order_relaxed);
-            if (tmp != nullptr &&
-                (tmp->stopped.load(std::memory_order_relaxed) || curMode != TONE_MODE)) {
+            if (tmp != nullptr && (tmp->finished() || curMode != TONE_MODE)) {
                 tones[i].store(nullptr, std::memory_order_relaxed);
                 delete tmp;
             }
@@ -224,6 +223,14 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
             if (tones[i].load(std::memory_order_acquire) != nullptr) ++nTones;
         }
 
+        // if we simply divide by the number of tones, the difference between
+        // one tone and two played simultaneously is too dramatic, so scale
+        // single tones far down first and gradually bring them back up; the
+        // gain glides toward its target instead of jumping with every note
+        // added or released, which would be audible as a click
+        float gainTarget = nTones ? (1 - expf(-(nTones - 1) * 0.5f) / 2) / nTones : 0.5f;
+        float glide = 1 - expf(-1.f / (0.03f * sampleRate.load(std::memory_order_relaxed)));
+
         for (int i = 0; i < frames; ++i) {
             float thing = 0;
             if (nTones) {
@@ -231,12 +238,8 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream *stream, vo
                     Tone *tmp = tones[j].load(std::memory_order_acquire);
                     if (tmp != nullptr) thing += tmp->tick();
                 }
-                thing /= nTones;
-                // if we simply divide by the number of tones, the difference
-                // between one tone and two played simultaneously is too dramatic,
-                // so scale single tones far down first and gradually bring them
-                // back up
-                thing *= 1 - expf(-(nTones - 1) * 0.5f) / 2;
+                mixerGain += (gainTarget - mixerGain) * glide;
+                thing *= mixerGain;
             }
             for (int ch = 0; ch < channels; ++ch) outBuf[i * channels + ch] = thing;
         }
