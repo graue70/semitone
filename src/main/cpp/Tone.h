@@ -30,7 +30,8 @@ class Tone {
     std::atomic<bool> stopped;
 
    private:
-    float phase, phaseIncrement;
+    float phase, phaseIncrement, boost, norm, amp[16];
+    int nPartials;
     int pos, releaseStart, totalSamples, attackSamples, releaseSamples;
 };
 
