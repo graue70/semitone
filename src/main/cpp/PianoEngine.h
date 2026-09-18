@@ -74,6 +74,7 @@ class PianoEngine : oboe::AudioStreamCallback {
     std::atomic<Tone *> tones[MAX_TONES] = {};
     std::atomic<Sound *> sounds[MAX_SOUNDS] = {};
     std::atomic<int> mode{TONE_MODE};
+    float mixerGain = 0.5f;
 
     // decoded samples by path/concert pitch/sample rate; sounds reference
     // the buffers by shared_ptr, so playback survives cache eviction

@@ -25,11 +25,14 @@ class Tone {
    public:
     Tone(int pitch, int concert_a, int sampleRate);
     float tick();
+    bool finished() const;
     int pitch;
     std::atomic<bool> stopped;
 
    private:
-    float phase, phaseIncrement;
+    float phase, phaseIncrement, boost, norm, amp[24];
+    int nPartials;
+    int pos, releaseStart, totalSamples, attackSamples, releaseSamples;
 };
 
 #endif
