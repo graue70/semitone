@@ -1,6 +1,7 @@
 /*
  * Semitone - tuner, metronome, and piano for Android
  * Copyright (C) 2019  Andy Tockman <andy@tck.mn>
+ * Copyright (C) 2026  graue70 <23035329+graue70@users.noreply.github.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
