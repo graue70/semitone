@@ -5,3 +5,4 @@ shared
 keystore.properties
 *.jks
 .cxx
+__pycache__/
