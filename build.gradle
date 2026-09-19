@@ -27,7 +27,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "mn.tck.semitone"
+        applicationId "io.github.graue70.semitone"
         minSdk 23
         targetSdk 36
         versionCode (project.hasProperty('ciVersionCode') ? project.property('ciVersionCode').toInteger() : 6)
