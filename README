@@ -1,5 +1,6 @@
 Semitone - tuner, metronome, and piano for Android
 Copyright (C) 2019  Andy Tockman <andy@tck.mn>
+Copyright (C) 2026  graue70 <23035329+graue70@users.noreply.github.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,9 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -------
 
-Official website:     https://tck.mn/semitone/
-Google Play download: https://play.google.com/store/apps/details?id=mn.tck.semitone
-F-Droid download:     https://f-droid.org/packages/mn.tck.semitone
+This is a fork of Andy Tockman's Semitone
+(https://tck.mn/semitone/). This fork is developed and released at
+
+  https://github.com/graue70/semitone
 
 -------
 
