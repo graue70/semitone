@@ -68,14 +68,14 @@ jobs:
           ./tools/build_ffmpeg.sh
           ./tools/copy_ffmpeg.sh
 
-      - name: verify versionName matches tag
+      - name: verify build.gradle version matches tag
         if: github.event_name == 'push'
         run: |
           expected="${GITHUB_REF_NAME#v}"
-          if ! grep -qF ": '$expected')" build.gradle; then
+          grep -qF ": '$expected')" build.gradle || {
             echo >&2 "build.gradle versionName does not match tag $GITHUB_REF_NAME"
             exit 1
-          fi
+          }
 
       - name: check formatting and run unit tests
         run: ./gradlew spotlessCheck testDebugUnitTest
@@ -102,20 +102,46 @@ jobs:
       - name: build apk
         id: apk
         run: |
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            vname="1.3.2-test.${GITHUB_RUN_NUMBER}"
-            vcode=$((6 + GITHUB_RUN_NUMBER))
-            ./gradlew assembleRelease "-PciVersionName=$vname" "-PciVersionCode=$vcode"
-            echo "version=$vname" >> "$GITHUB_OUTPUT"
-          elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            ./gradlew assembleRelease
-            # GITHUB_REF_NAME is "<number>/merge" on pull_request builds, so
-            # name the apk after the pr instead
-            echo "version=pr${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-          else
-            ./gradlew assembleRelease
-            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-          fi
+          # versionCode scheme (see build.gradle): M*10^6 + m*10^4 + p*10^2,
+          # with the last two digits encoding the prerelease number (< 95);
+          # stable releases use 95. Test builds derive M.m.p from the
+          # versionName default in build.gradle.
+          base="$(grep -oP "versionName \(project.hasProperty\('ciVersionName'\) \? project.property\('ciVersionName'\) : '\K[0-9.]+" build.gradle)"
+          IFS=. read -r M m p <<< "$base"
+          case "$GITHUB_EVENT_NAME" in
+            workflow_dispatch)
+              n="${GITHUB_RUN_NUMBER}"
+              if [ "$n" -ge 95 ]; then
+                echo >&2 "test prerelease number $n must be < 95 (versionCode scheme)"
+                exit 1
+              fi
+              vname="$base-test.$n"
+              vcode=$((M * 1000000 + m * 10000 + p * 100 + n))
+              ./gradlew assembleRelease "-PciVersionName=$vname" "-PciVersionCode=$vcode"
+              echo "version=$vname" >> "$GITHUB_OUTPUT"
+              ;;
+            pull_request)
+              ./gradlew assembleRelease
+              # GITHUB_REF_NAME is "<number>/merge" on pull_request builds, so
+              # name the apk after the pr instead
+              echo "version=pr${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+                echo >&2 "unexpected push event on $GITHUB_REF_NAME"
+                exit 1
+              fi
+              vname="${GITHUB_REF_NAME#v}"
+              case "$vname" in
+                *.*) ;;
+                *) echo >&2 "tag $GITHUB_REF_NAME must be v<M.m.p>"; exit 1 ;;
+              esac
+              IFS=. read -r tM tm tp <<< "$vname"
+              vcode=$((tM * 1000000 + tm * 10000 + tp * 100 + 95))
+              ./gradlew assembleRelease "-PciVersionName=$vname" "-PciVersionCode=$vcode"
+              echo "version=$vname" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: rename apk
         run: |
