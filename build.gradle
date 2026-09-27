@@ -30,8 +30,15 @@ android {
         applicationId "io.github.graue70.semitone"
         minSdk 23
         targetSdk 36
-        versionCode (project.hasProperty('ciVersionCode') ? project.property('ciVersionCode').toInteger() : 6)
-        versionName (project.hasProperty('ciVersionName') ? project.property('ciVersionName') : '1.3.2')
+        // versionCode scheme: M * 10^6 + m * 10^4 + p * 10^2 + prerelease,
+        // where prerelease is the test build number (< 95) or 95 for stable
+        // releases; e.g. 1.4.0-test.9 -> 1040009, 1.4.0 -> 1040095. CI derives
+        // versionCode and versionName from the git tag or the test build
+        // number and passes them via the ciVersion* properties; the values
+        // below are only used for local builds and should be kept in sync
+        // with the upcoming release.
+        versionCode (project.hasProperty('ciVersionCode') ? project.property('ciVersionCode').toInteger() : 1040095)
+        versionName (project.hasProperty('ciVersionName') ? project.property('ciVersionName') : '1.4.0')
     }
 
     signingConfigs {
