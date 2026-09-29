@@ -30,6 +30,15 @@ The fork uses a different app ID (`io.github.graue70.semitone`) than the
 original (`mn.tck.semitone`), so it installs as a separate app and cannot
 update an existing installation of the original.
 
+## Installing
+
+Releases are published on the [GitHub releases
+page](https://github.com/graue70/semitone/releases); test builds are
+published as prereleases. On a phone, releases and test builds can be
+installed and kept up to date with
+[Obtainium](https://github.com/ImranR98/Obtainium) by adding this repository
+(enable prereleases for test builds).
+
 ## Compilation
 
 To compile, first run
@@ -40,12 +49,12 @@ tools/copy_ffmpeg.sh
 ```
 
 The first command is a custom build script to build ffmpeg with only the
-necessary features, and the second command moves the shared object files to the
-place where CMake is configured to find them. The script needs the Android NDK
-(r28c, 28.2.13676358) via the `ANDROID_NDK` environment variable. Building the
-app itself requires a JDK (17 or later) and the Android SDK; see [shell.nix](./shell.nix) for
-one way to set these up. Then, to build Semitone, run either of the following
-commands:
+necessary features, and the second command moves the shared object files to
+the place where CMake is configured to find them. The script needs the
+Android NDK (r28c, 28.2.13676358) via the `ANDROID_NDK` environment
+variable. Building the app itself requires a JDK (17 or later) and the
+Android SDK; see [shell.nix](./shell.nix) for one way to set these up.
+Then, to build Semitone, run either of the following commands:
 
 ```sh
 ./gradlew assembleDebug
@@ -54,36 +63,28 @@ commands:
 
 ## Release
 
-To publish a test release of a branch, run
+To publish a test build of a branch, run
 
 ```sh
 gh workflow run android.yml --ref <branch>
 ```
 
 which builds the APK via GitHub Actions and attaches it to a GitHub
-prerelease tagged with the app version (e.g. 1.3.2-test.9), so the tag,
-APK file name and app version all match. The APKs are signed with the
-keystore stored in the repository secrets (`KEYSTORE_BASE64`,
-`KEYSTORE_PASSWORD`, `KEY_ALIAS`). The keystore file and its password must
-be backed up outside the repository; losing either breaks the update chain
-for all installed builds. The
-builds can be installed and kept up to date on a phone using
-[Obtainium](https://github.com/ImranR98/Obtainium) by adding this repository
-with prereleases enabled.
+prerelease named `<version>-test.<n>`, so the tag, APK file name and app
+version all match.
 
 To publish a stable release, set the `versionName` default in
-[`build.gradle`](./build.gradle) to the release version, then push a matching
-`v<version>` tag (e.g. `v1.4.0`): the workflow checks that tag and
+[`build.gradle`](./build.gradle) to the release version, then push a
+matching `v<version>` tag (e.g. `v1.4.0`): the workflow checks that tag and
 `versionName` match, builds and signs the APK, and creates a GitHub release
-with generated notes.
+with generated notes. Version names and codes are derived automatically by
+CI (the scheme is documented in `build.gradle`), so test builds of a version
+always sort below its stable release and APKs install as updates.
 
-Both `versionName` and `versionCode` are derived by CI: a tag `v1.4.0`
-becomes version `1.4.0` with code `1040095`, a test build of the default
-version becomes e.g. `1.4.0-test.9` with code `1040009`. The scheme
-(`M*10^6 + m*10^4 + p*10^2 + prerelease`, stable = 95, test numbers < 95)
-guarantees that test builds of a version sort below its stable release,
-which sorts below test builds of the next version, so APKs always install
-as updates over previously installed builds of the same version line.
+The APKs are signed with the keystore stored in the repository secrets
+(`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`). The keystore file and
+its password must be backed up outside the repository; losing either breaks
+the update chain for all installed builds.
 
 ## Piano samples
 
