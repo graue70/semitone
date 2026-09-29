@@ -62,9 +62,11 @@ gh workflow run android.yml --ref <branch>
 
 which builds the APK via GitHub Actions and attaches it to a GitHub
 prerelease tagged with the app version (e.g. 1.3.2-test.9), so the tag,
-APK file name and app version all match. The APKs are signed with a test
+APK file name and app version all match. The APKs are signed with the
 keystore stored in the repository secrets (`KEYSTORE_BASE64`,
-`KEYSTORE_PASSWORD`, `KEY_ALIAS`), which must be configured before use. The
+`KEYSTORE_PASSWORD`, `KEY_ALIAS`). The keystore file and its password must
+be backed up outside the repository; losing either breaks the update chain
+for all installed builds. The
 builds can be installed and kept up to date on a phone using
 [Obtainium](https://github.com/ImranR98/Obtainium) by adding this repository
 with prereleases enabled.
