@@ -69,13 +69,19 @@ builds can be installed and kept up to date on a phone using
 [Obtainium](https://github.com/ImranR98/Obtainium) by adding this repository
 with prereleases enabled.
 
-To publish a stable release, set `versionName` and `versionCode` in
-[`build.gradle`](./build.gradle) to the release values, then push a matching
+To publish a stable release, set the `versionName` default in
+[`build.gradle`](./build.gradle) to the release version, then push a matching
 `v<version>` tag (e.g. `v1.4.0`): the workflow checks that tag and
 `versionName` match, builds and signs the APK, and creates a GitHub release
-with generated notes. Note that `versionCode` needs to be higher than any
-previously installed build (test builds use `6 + <run number>`) for the APK
-to install as an update.
+with generated notes.
+
+Both `versionName` and `versionCode` are derived by CI: a tag `v1.4.0`
+becomes version `1.4.0` with code `1040095`, a test build of the default
+version becomes e.g. `1.4.0-test.9` with code `1040009`. The scheme
+(`M*10^6 + m*10^4 + p*10^2 + prerelease`, stable = 95, test numbers < 95)
+guarantees that test builds of a version sort below its stable release,
+which sorts below test builds of the next version, so APKs always install
+as updates over previously installed builds of the same version line.
 
 ## Piano samples
 
