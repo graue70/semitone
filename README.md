@@ -77,7 +77,7 @@ To publish a stable release, set the `versionName` default in
 [`build.gradle`](./build.gradle) to the release version, then push a
 matching `v<version>` tag (e.g. `v1.4.0`): the workflow checks that tag and
 `versionName` match, builds and signs the APK, and creates a GitHub release
-with generated notes. Version names and codes are derived automatically by
+with generated notes covering all changes since the previous stable release. Version names and codes are derived automatically by
 CI (the scheme is documented in `build.gradle`), so test builds of a version
 always sort below its stable release and APKs install as updates.
 

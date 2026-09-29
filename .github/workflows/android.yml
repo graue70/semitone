@@ -186,7 +186,15 @@ jobs:
               --title "test build $VERSION ($branch)" \
               --notes-file notes.md
           else
-            gh release create "$GITHUB_REF_NAME" "semitone-$VERSION.apk" \
-              --title "$GITHUB_REF_NAME" \
-              --generate-notes
+            prev="$(git tag --sort=-creatordate | grep -v -- '-test\.' | grep -vxF "$GITHUB_REF_NAME" | head -1)"
+            if [ -n "$prev" ]; then
+              gh release create "$GITHUB_REF_NAME" "semitone-$VERSION.apk" \
+                --title "$GITHUB_REF_NAME" \
+                --generate-notes \
+                --notes-start-tag "$prev"
+            else
+              gh release create "$GITHUB_REF_NAME" "semitone-$VERSION.apk" \
+                --title "$GITHUB_REF_NAME" \
+                --generate-notes
+            fi
           fi
